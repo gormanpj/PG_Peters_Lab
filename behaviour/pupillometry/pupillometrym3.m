@@ -1,5 +1,38 @@
-% Script to plot pupil responses to lcr_passive stimuli across days, for
-% many mice
+%% Load behavior, add 'learned_days' and 'days_from_learning' fields
+data_path = fullfile(plab.locations.server_path,'Lab','Papers','Marica_2025','data');
+% Set stat and p-value to define learning day
+use_stat = 'firstmove_mean';
+learn_stat_p = 0.05;
+% Load behavior
+load(fullfile(data_path,'bhv'));
+% Set "learned_days" and "days_from_learning"
+bhv.learned_days = cellfun(@(x) x < learn_stat_p,bhv.(['stimwheel_pval_',use_stat]));
+for curr_animal = unique(bhv.animal)'
+    curr_rows = strcmp(bhv.animal,curr_animal);
+    bhv.days_from_learning(curr_rows) = ...
+        (1:sum(curr_rows))' - ...
+        max([NaN,find(bhv.learned_days(curr_rows),1)]);
+end
+
+%% Grab the learning day for each animal
+% See unique animals in bhv
+aniUniq = unique(bhv.animal);
+% initialize cell to store learning days
+aniDates = cell(numel(aniUniq),2);
+for n = 1:numel(aniUniq); 
+    id = aniUniq{n};
+    aniDates(n,1) = {id};
+    % Get only recordings for this animal
+    daysID = bhv(strcmp(bhv.animal, id),:);
+    if any(daysID.days_from_learning == 0) % check if there was a learning day
+        ld = daysID(daysID.days_from_learning == 0, :);
+        aniDates(n,2) = ld.rec_day; % set learning date
+    else
+        aniDates(n,2) = {NaN}; % if no learning date, NaN
+    end
+end
+
+%% Script to plot pupil responses to lcr_passive stimuli across days, for many mice
 
 mouseIDs = unique(bhv.animal); % grabbing mice in question from bhv table
 
@@ -87,7 +120,9 @@ for m = 1:numel(mouseIDs)
     
             xg = xpts(valid);
             yg = ypts(valid);
-        
+            
+            % Replace here with median difference b/t opposed points 
+
             % Algebraic least-squares fit:
             % Solve for a,b,c in x^2 + y^2 + a*x + b*y + c = 0
             A = [xg, yg, ones(length(xg),1)];
@@ -176,12 +211,16 @@ for m = 1:numel(mouseIDs)
     diameterZAllFlip = cellfun(@transpose, diameterZ_all, 'UniformOutput', false);
 
     % Lowpass filter to get rid of jitteriness
-    diameterZAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 9, 30), diameterZAllFlip, 'UniformOutput', false);
-    diameterPxAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 9, 30), diameterPxAllFlip, 'UniformOutput', false);
-    
+    diameterZAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 4, 30), diameterZAllFlip, 'UniformOutput', false);
+    diameterPxAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 4, 30), diameterPxAllFlip, 'UniformOutput', false);
+
+    % try movemean after
+    diameterZAllFlipFiltMov = cellfun(@(x) movmean(x, [6 0]), diameterZAllFlipFilt, 'UniformOutput', false);
+    diameterPxAllFlipFiltMov = cellfun(@(x) movmean(x, [6 0]), diameterPxAllFlipFilt, 'UniformOutput', false);
+
     % Get derivatives
-    diameterZAllFlipFiltDeriv = cellfun(@diff, diameterZAllFlipFilt, 'UniformOutput', false);
-    diameterPxAllFlipFiltDeriv = cellfun(@diff, diameterPxAllFlipFilt, 'UniformOutput', false);
+    diameterZAllFlipFiltDeriv = cellfun(@diff, diameterZAllFlipFiltMov, 'UniformOutput', false);
+    diameterPxAllFlipFiltDeriv = cellfun(@diff, diameterPxAllFlipFiltMov, 'UniformOutput', false);
 
     % Output to use
     pupilPerFile = diameterZAllFlipFiltDeriv;  
@@ -360,47 +399,24 @@ for di = 8:14
     hold off;
 end
 
-% % Plotting mean + sem across days
-% figure; tiledlayout;
-% for n = 1:nFiles
-%     nexttile;
-%     hold on
-% 
-%     %take this day
-%     dayN = groups(:,1) == n - idxLearn;
-% 
-%     % Left (blue)
-%     lN = dayN & (groups(:,2) == 1);
-%     lM = dayOriMeans(find(lN),:);
-%     lSEM = dayOriSem(find(lN),:);
-%     xl = [x, fliplr(x)];
-%     yl = [lM + lSEM, fliplr(lM - lSEM)];
-%     fill(xl, yl, 'b', 'EdgeColor','none', 'FaceAlpha', 0.2);
-%     plot(x, lM, 'b', 'LineWidth', 1.2);
-% 
-%     % Center (black)
-%     cN = dayN & (groups(:,2) == 2);
-%     cM = dayOriMeans(find(cN),:);
-%     cSEM = dayOriSem(find(cN),:);
-%     xc = [x, fliplr(x)];
-%     yc = [cM + cSEM, fliplr(cM - cSEM)];
-%     fill(xc, yc, 'k', 'EdgeColor','none', 'FaceAlpha', 0.2);
-%     plot(x, cM, 'k', 'LineWidth', 1.2);
-% 
-%     % Right (red)
-%     rN = dayN & (groups(:,2) == 3);
-%     rM = dayOriMeans(find(rN),:);
-%     rSEM = dayOriSem(find(rN),:);
-%     xr = [x, fliplr(x)];
-%     yr = [rM + rSEM, fliplr(rM - rSEM)];
-%     fill(xr, yr, 'r', 'EdgeColor','none', 'FaceAlpha', 0.2);
-%     plot(x, rM, 'r', 'LineWidth', 1.2);
-% 
-%     xline(0,'--');
-%     yline(0,'Color','k','Alpha',0.5);
-%     xlabel('Frames (relative to stimulus)');
-%     ylabel('Pupil diameter derivative (arb)');
-%     ylim([-0.05, 0.05])
-%     title(num2str(n - idxLearn))
-%     hold off
-% end
+%% Package into a beautiful table
+
+animalID = {};
+for i = 1:numel(mouseIdx_all)
+    animalID{i,1} = mouseIDs{mouseIdx_all(i)};
+end
+
+orientationDir = [];
+for y = 1:numel(orientationIdx_all)
+    if orientationIdx_all(y,1) == 1
+            orientationDir(y,1) = -90;    % left
+    elseif orientationIdx_all(y,1) == 2
+            orientationDir(y,1) = 0;    % center
+    elseif orientationIdx_all(y,1) == 3
+            orientationDir(y,1) = 90;     % right
+    end
+end
+
+pupilDiamByFrame = psthData_all;
+
+pupils = table(animalID, mouseIdx_all, learnDayIdx_all, orientationDir, pupilDiamByFrame);

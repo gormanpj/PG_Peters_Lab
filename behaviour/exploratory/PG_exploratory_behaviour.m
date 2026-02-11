@@ -1,8 +1,8 @@
 % Exploratory behaviour script
 
 % Visualize averaged wheel movement around stimulus
-animal = 'PG001'; 
-use_workflows = {'stim_wheel_right_stage\d_noincorrect','stim_wheel_right_stage2'};
+animal = 'PG002'; 
+use_workflows = {'*wheel*'};
 recordings = [];
 for i = 1:numel(use_workflows)
     rec = plab.find_recordings(animal,[],use_workflows{i});
@@ -15,8 +15,8 @@ x = (-5000:5000);
 figure; hold on;
 title(animal, use_workflows, 'Interpreter', 'none');
 axis square;
-colours = {[.3 0 .7], [.5 0 .7], [.5 .2 .7], [.5 .4 .7], [.5 .6 .7], [.5 .6 .9],[.5 .7 1], [.5 .9 1], [.6 1 1],[.8 .8 1], [1 1 1]};
-for v = 1:length(recordings);
+colours = {[.3 0 .7], [.5 0 .7], [.5 .2 .7], [.5 .4 .7], [.5 .6 .7], [.5 .6 .9],[.5 .7 1], [.5 .9 1], [.6 1 1],[.8 .8 1], [1 1 .8]};
+for v = 1:length(recordings)
     rec_day = recordings(v).day; 
     rec_time = recordings(v).recording{end}; 
     verbose = false;
@@ -36,7 +36,11 @@ for v = 1:length(recordings);
     
     [nStim, nWindow] = size(stimRanges);
     
-    wheelStim = mean(wheel_move(stimRanges), 1);
+    % Split to aversive/appetitive
+    TaskType = vertcat(trial_events.values.TaskType);
+
+    wheelStimAP = mean(wheel_move(stimRanges(TaskType == 0,:)), 1);
+    wheelStimAV = mean(wheel_move(stimRanges(TaskType == 1,:)), 1);
 
     % Percentage of time with stim on
     stimTotal = 100*(sum(photodiode_trace >= 3) / length(photodiode_trace));
@@ -57,7 +61,7 @@ hold off;
 
 figure; tiledlayout(length(recordings),2,'TileIndexing', 'columnmajor');
 title(animal, use_workflow);
-for v = 1:length(recordings);
+for v = 1:length(recordings)
     rec_day = recordings(v).day; 
     rec_time = recordings(v).recording{end}; 
     verbose = false;
