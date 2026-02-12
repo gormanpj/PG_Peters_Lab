@@ -217,23 +217,22 @@ for m = 1%:numel(mouseIDs)
         % Get mask for screen-off frames
         mousecamOnIdx = find(diff([double(mousecam_thresh)]) == 1) + 1 ;  
         mousecamOffIdx = find(diff([double(mousecam_thresh)]) == -1) + 1 ;  
-        
+
         screenOnFrames = [];
         finalExposesMask = mousecam_exposeOn_times >= mousecam_times(1) & mousecam_exposeOn_times <= mousecam_times(end);
-        for n = 1:numel(mousecamOffIdx);
-            exposeMask = (mousecamOnIdx(n):1:(mousecamOffIdx(n) -1));
-            screenOnFrames(n) = sum(screen_on(exposeMask));
+        for k = 1:numel(mousecamOffIdx);
+            exposeMask = (mousecamOnIdx(k):1:(mousecamOffIdx(k) -1));
+            screenOnFrames(k) = sum(screen_on(exposeMask));
         end
         screenOff = screenOnFrames' == 0;
         screenOffMask = screenOff(finalExposesMask);
-
 
         % Grab the frame times and put them in one cell 
         frameStims(n,1) = mat2cell(mousecam_times,1); 
         frameStims(n,2) = mat2cell(stimOn_times',1); 
         frameStims(n,3) = mat2cell((vertcat(trial_events.values.TrialStimX))',1); 
         frameStims(n,4) = mat2cell(quiescent_trials',1);
-        %frameStims(n,5) = mat2cell(screenOffMask',1);
+        frameStims(n,5) = mat2cell(screenOffMask',1);
     end 
     
     diameterPxAllFlip = cellfun(@transpose, diameterPx_all, 'UniformOutput', false);
