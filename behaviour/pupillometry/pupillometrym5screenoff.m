@@ -58,7 +58,7 @@ learnDayIdx_allQui    = [];
 mouseIdx_allQui       = []; 
 
 % Loop across all mice
-for m = 1%:numel(mouseIDs)
+for m = 2%:numel(mouseIDs)
     animalID = mouseIDs{m};
     fprintf(animalID); fprintf(' \n \n');
     dataDir = fullfile('C:\Users\pgorman\Documents\SLEAP\Outputs_Sorted\lcr_passive', animalID);  
@@ -220,7 +220,7 @@ for m = 1%:numel(mouseIDs)
 
         screenOnFrames = [];
         finalExposesMask = mousecam_exposeOn_times >= mousecam_times(1) & mousecam_exposeOn_times <= mousecam_times(end);
-        for k = 1:numel(mousecamOffIdx);
+        for k = 1:min(numel(finalExposesMask), numel(mousecamOffIdx))
             exposeMask = (mousecamOnIdx(k):1:(mousecamOffIdx(k) -1));
             screenOnFrames(k) = sum(screen_on(exposeMask));
         end
@@ -237,14 +237,20 @@ for m = 1%:numel(mouseIDs)
     
     diameterPxAllFlip = cellfun(@transpose, diameterPx_all, 'UniformOutput', false);
     diameterZAllFlip = cellfun(@transpose, diameterZ_all, 'UniformOutput', false);
+    
+    for i = 1:numel(diameterZAllFlip)
+        mask = frameStims{i,5}(:);
+        diameterZAllFlip{i}(~mask) = NaN;
+        diameterPxAllFlip{i}(~mask) = NaN;
+    end
 
-    % Lowpass filter to get rid of jitteriness
-    diameterZAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 4, 30), diameterZAllFlip, 'UniformOutput', false);
-    diameterPxAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 4, 30), diameterPxAllFlip, 'UniformOutput', false);
+    %Lowpass filter to get rid of jitteriness
+    % diameterZAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 4, 30), diameterZAllFlip, 'UniformOutput', false);
+    % diameterPxAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 4, 30), diameterPxAllFlip, 'UniformOutput', false);
 
     % try movemean after
-    diameterZAllFlipFiltMov = cellfun(@(x) movmean(x, [6 0]), diameterZAllFlipFilt, 'UniformOutput', false);
-    diameterPxAllFlipFiltMov = cellfun(@(x) movmean(x, [6 0]), diameterPxAllFlipFilt, 'UniformOutput', false);
+    diameterZAllFlipFiltMov = cellfun(@(x) movmean(fillmissing(x, "linear"), [6 0]), diameterZAllFlip, 'UniformOutput', false);
+    diameterPxAllFlipFiltMov = cellfun(@(x) movmean(fillmissing(x, "linear"), [6 0]), diameterPxAllFlip, 'UniformOutput', false);
 
     % Get derivatives
     diameterZAllFlipFiltDeriv = cellfun(@diff, diameterZAllFlipFiltMov, 'UniformOutput', false);
@@ -479,3 +485,8 @@ end
 pupilDiamByFrame = psthData_all;
 
 pupils = table(animalID, mouseIdx_all, learnDayIdx_all, orientationDir, pupilDiamByFrame);
+
+
+% animal = 'AM012'
+% rec_day = '2023-12-05'
+% rec_time = '1527'

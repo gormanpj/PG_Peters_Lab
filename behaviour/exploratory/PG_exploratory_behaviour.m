@@ -2,7 +2,7 @@
 
 % Visualize averaged wheel movement around stimulus
 animal = 'PG004'; 
-use_workflows = {'*wheel*'};
+use_workflows = {'stim_wheel_right_AVAP_noincorrect'};
 recordings = [];
 for i = 1:numel(use_workflows)
     rec = plab.find_recordings(animal,[],use_workflows{i});
@@ -36,11 +36,11 @@ for v = 1:length(recordings)
     
     [nStim, nWindow] = size(stimRanges);
     
-    % Split to aversive/appetitive
-    % TaskType = vertcat(trial_events.values.TaskType);
-    % TaskType = TaskType(1:numel(stimOffTimes));
-    % wheelStimAP = mean(wheel_move(stimRanges(TaskType == 0,:)), 1);
-    % wheelStimAV = mean(wheel_move(stimRanges(TaskType == 1,:)), 1);
+    %Split to aversive/appetitive
+    TaskType = vertcat(trial_events.values.TaskType);
+    TaskType = TaskType(1:numel(stimOffTimes));
+    wheelStimAP = mean(wheel_move(stimRanges(TaskType == 0,:)), 1);
+    wheelStimAV = mean(wheel_move(stimRanges(TaskType == 1,:)), 1);
     
     wheelStim = mean(wheel_move(stimRanges),1);
 
