@@ -1,8 +1,8 @@
 % Exploratory behaviour script
 
 % Visualize averaged wheel movement around stimulus
-animal = 'PG001'; 
-use_workflows = {'stim_wheel_right_AVAP_noincorrect'};
+animal = 'PG002'; 
+use_workflows = {'stim_wheel_right_AVAP_noincorrect_earphone'};
 recordings = [];
 for i = 1:numel(use_workflows)
     rec = plab.find_recordings(animal,[],use_workflows{i});
@@ -46,7 +46,7 @@ xlabel(axAgg,'time (s)');
 xlabel(axAP,'time (s)');
 xlabel(axAV,'time (s)');
 
-for v = 2:length(recordings)
+for v = 1:length(recordings)
     rec_day = recordings(v).day;
     rec_time = recordings(v).recording{end};
     verbose = false;
@@ -98,10 +98,14 @@ end
 % Tgoodbad = vertcat(trial_events.timestamps.TaskType)
 % bad = Tgoodbad(vertcat(trial_events.values.TaskType) == 1);
 % good = Tgoodbad(vertcat(trial_events.values.TaskType) == 0);
-% 
+% start = trial_events.timestamps(1).TaskType;
 % figure;hold on
 % plot(photodiode_bw_interp, 'k')
+% 
+% 
 % 
 % plot(timelite.data(:,7), 'b')
 % xline((seconds(good-start)*1000)+14400, 'g')
 % xline((seconds(bad-start)*1000)+14400, 'r')
+% rec_day = '2026-02-27';
+% rec_time = '1431';

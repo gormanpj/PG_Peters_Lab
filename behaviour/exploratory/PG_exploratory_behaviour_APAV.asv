@@ -1,8 +1,8 @@
 % Exploratory behaviour script
 
 % Visualize averaged wheel movement around stimulus
-animal = 'PG004'; 
-use_workflows = {'stim_wheel_right_AVAP_noincorrect'};
+animal = 'PG002'; 
+use_workflows = {'stim_wheel_right_APAP_noincorrect'};
 recordings = [];
 for i = 1:numel(use_workflows)
     rec = plab.find_recordings(animal,[],use_workflows{i});
@@ -94,13 +94,15 @@ for v = 1:length(recordings)
     "FontSize",12, "Color", colours{v}, ...
     "HorizontalAlignment","left");
 end
-
-Tgoodbad = vertcat(trial_events.timestamps.StimOn)
+% 
+Tgoodbad = vertcat(trial_events.timestamps.TaskType)
 bad = Tgoodbad(vertcat(trial_events.values.TaskType) == 1);
 good = Tgoodbad(vertcat(trial_events.values.TaskType) == 0);
-
+start = trial_events.timestamps(1).TaskType;
 figure;hold on
 plot(photodiode_bw_interp, 'k')
+
+
 
 plot(timelite.data(:,7), 'b')
 xline((seconds(good-start)*1000)+14400, 'g')
