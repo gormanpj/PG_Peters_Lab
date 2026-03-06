@@ -1,8 +1,8 @@
 % Exploratory behaviour script
 
 % Visualize averaged wheel movement around stimulus
-animal = 'PG002'; 
-use_workflows = {'stim_wheel_right_AVAP_noincorrect_earphone'};
+animal = 'PG001'; 
+use_workflows = {'stim_wheel_right_APAP_noincorrect'};
 recordings = [];
 for i = 1:numel(use_workflows)
     rec = plab.find_recordings(animal,[],use_workflows{i});
@@ -46,7 +46,7 @@ xlabel(axAgg,'time (s)');
 xlabel(axAP,'time (s)');
 xlabel(axAV,'time (s)');
 
-for v = 1:length(recordings)
+for v = 3:length(recordings)
     rec_day = recordings(v).day;
     rec_time = recordings(v).recording{end};
     verbose = false;

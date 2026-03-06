@@ -58,7 +58,7 @@ learnDayIdx_allQui    = [];
 mouseIdx_allQui       = []; 
 
 % Loop across all mice
-for m = 4:14%:numel(mouseIDs)
+for m = 4%1:numel(mouseIDs)
     animalID = mouseIDs{m};
     fprintf(animalID); fprintf(' \n \n');
     dataDir = fullfile('C:\Users\pgorman\Documents\SLEAP\Outputs_Sorted\lcr_passive', animalID);  
@@ -225,32 +225,64 @@ for m = 4:14%:numel(mouseIDs)
                     (1:length(stimOn_times))');
         
         % Get mask for screen-off frames
+        
+        % New approach
+        % Take mc_times
+        % Make mc_off by diff(mc_thresh) == -1
+        % get mc_off_timelite by interp1(mc_off, mc_off, mc_times, next)
+        % for mc_times 
+            % mask = isbetween(timelite.timestamps, mc_on(n), mc_off(n))
+            % screenOn(n) = stimscreen(mask)
+            % may have NaNs at end
+        % then crop this to length of sleap (and mc_times if necessary)
+        % then where it's false, set 1 in final mask (true and NaN
+        % excluded)
+
+
+       
+        % also: check fourier transform after screenoff filtering, and of
+        % the videos where screen is always on
+
+        % baseline correct by using a 50-100ms avg window instead of 0
+        % frame
+
+        % do movmean at end
+
+
+
 
         % somehow mousecam_times is capable of knowing about frames that
         % don't exist on the thresh either... we have to truncate to the
         % length of the number of exposures present in the thresh, after
         % the first one from mousecam_times. bizarre behaviour
         % min(numel(find(diff([double(mousecam_thresh)]) == 1) +1),
-        firstOn = int32(mousecam_times(1)*1000);
-        mousecam_timesTrim = mousecam_times(1:numel(diameterPx_all{n}));
-
         
         mousecam_timesTrim = mousecam_times(1:numel(diameterPx_all{n}));
 
         firstOn = int32(mousecam_timesTrim(1)*1000);
+        lastOff = int32(mousecam_timesTrim(end)*1000) + 7;
+
         %mousecam_times knows about frames after the expose information is
         %gone. so we can't rely on timelite exposures. Best bet probably
         %mousecam_times(end)+7
         % or, since sleap is curtailing unlabelled end frames, we need to
         % go to (mousecam_times(find(t(end)) and trim screenon and
         % mousecamthresh to that
-        lastOff = int32(mousecam_timesTrim(end)*1000) + 7;
-        mousecam_threshTrim = mousecam_thresh(firstOn:lastOff);
+        if lastOff > numel(mousecam_thresh)
+            mousecam_threshFromStart = mousecam_thresh(firstOn:end);
+            mousecamOnIdx = find(diff([double(mousecam_threshFromStart)]) == 1) + 1 ;  
+            mousecam_timesTrim = mousecam_times(1:numel(mousecamOnIdx));
+            lastOff = int32(mousecam_timesTrim(end)*1000) + 7;
+
+        else 
+            mousecam_threshTrim = mousecam_thresh(firstOn:lastOff);
+            
+        end
+
         screen_onTrim = screen_on(firstOn:lastOff);
-        
+
         mousecamOnIdx = find(diff([double(mousecam_threshTrim)]) == 1) + 1 ;  
         mousecamOffIdx = find(diff([double(mousecam_threshTrim)]) == -1);  
-        
         % So: h5 files are concatenated when the last frames don't have
         % labels. We can work around this by just taking our frames from
         % mousecam_times(1:h5(end)), since we know that we don't lose any
@@ -289,12 +321,12 @@ for m = 4:14%:numel(mouseIDs)
     end
 
     %Lowpass filter to get rid of jitteriness
-    % diameterZAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 4, 30), diameterZAllFlip, 'UniformOutput', false);
-    % diameterPxAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 4, 30), diameterPxAllFlip, 'UniformOutput', false);
+    diameterZAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 4, 30), diameterZAllFlip, 'UniformOutput', false);
+    diameterPxAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 4, 30), diameterPxAllFlip, 'UniformOutput', false);
 
     % try movemean after
-    diameterZAllFlipFiltMov = cellfun(@(x) movmean(fillmissing(x, "linear"), [6 0]), diameterZAllFlip, 'UniformOutput', false);
-    diameterPxAllFlipFiltMov = cellfun(@(x) movmean(fillmissing(x, "linear"), [6 0]), diameterPxAllFlip, 'UniformOutput', false);
+    diameterZAllFlipFiltMov = cellfun(@(x) movmean(fillmissing(x, "linear"), [8 0]), diameterZAllFlipFilt, 'UniformOutput', false);
+    diameterPxAllFlipFiltMov = cellfun(@(x) movmean(fillmissing(x, "linear"), [8 0]), diameterPxAllFlipFilt, 'UniformOutput', false);
 
     % Get derivatives
     diameterZAllFlipFiltDeriv = cellfun(@diff, diameterZAllFlipFiltMov, 'UniformOutput', false);
@@ -530,7 +562,7 @@ pupilDiamByFrame = psthData_all;
 
 pupils = table(animalID, mouseIdx_all, learnDayIdx_all, orientationDir, pupilDiamByFrame);
 
-% 
-animal = 'AM014'
-rec_day =  '2024-01-17'
-rec_time = '1151'
+% % 
+% animal = 'AM014'
+% rec_day =  '2024-01-17'
+% rec_time = '1151'
