@@ -58,7 +58,7 @@ learnDayIdx_allQui    = [];
 mouseIdx_allQui       = []; 
 
 % Loop across all mice
-for m = 4%1:numel(mouseIDs)
+for m = 1:numel(mouseIDs)
     animalID = mouseIDs{m};
     fprintf(animalID); fprintf(' \n \n');
     dataDir = fullfile('C:\Users\pgorman\Documents\SLEAP\Outputs_Sorted\lcr_passive', animalID);  
@@ -237,9 +237,27 @@ for m = 4%1:numel(mouseIDs)
         % then crop this to length of sleap (and mc_times if necessary)
         % then where it's false, set 1 in final mask (true and NaN
         % excluded)
-
-
+        
+        mousecamOffTimelite = find(diff([double(mousecam_thresh)]) == -1);
+        mousecamOffTimeliteT = timelite.timestamps(mousecamOffTimelite);
+        mousecamOffTimes = interp1(mousecamOffTimeliteT, mousecamOffTimeliteT, mousecam_times, "next");
        
+        screenOnFrames = [];
+        screenOnFramesCt = [];
+
+        if all(screen_on(:))   
+            screenOffMask = true(numel(diameterPx_all{n}),1);
+        else 
+            for k = 1:numel(mousecam_times)
+                exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
+                screenOnFrames(k) = any(screen_on(exposeMask));
+                screenOnFramesCt(k) = sum(screen_on(exposeMask));
+            end
+            % figure;histogram(screenOnFramesCt);
+            screenOff = screenOnFrames == 0;
+            screenOffMask = screenOff(1:numel(diameterPx_all{n}));
+        end
+
         % also: check fourier transform after screenoff filtering, and of
         % the videos where screen is always on
 
@@ -248,67 +266,66 @@ for m = 4%1:numel(mouseIDs)
 
         % do movmean at end
 
-
-
-
+            
+        %% cut
         % somehow mousecam_times is capable of knowing about frames that
         % don't exist on the thresh either... we have to truncate to the
         % length of the number of exposures present in the thresh, after
         % the first one from mousecam_times. bizarre behaviour
         % min(numel(find(diff([double(mousecam_thresh)]) == 1) +1),
-        
-        mousecam_timesTrim = mousecam_times(1:numel(diameterPx_all{n}));
-
-        firstOn = int32(mousecam_timesTrim(1)*1000);
-        lastOff = int32(mousecam_timesTrim(end)*1000) + 7;
-
-        %mousecam_times knows about frames after the expose information is
-        %gone. so we can't rely on timelite exposures. Best bet probably
-        %mousecam_times(end)+7
-        % or, since sleap is curtailing unlabelled end frames, we need to
-        % go to (mousecam_times(find(t(end)) and trim screenon and
-        % mousecamthresh to that
-        if lastOff > numel(mousecam_thresh)
-            mousecam_threshFromStart = mousecam_thresh(firstOn:end);
-            mousecamOnIdx = find(diff([double(mousecam_threshFromStart)]) == 1) + 1 ;  
-            mousecam_timesTrim = mousecam_times(1:numel(mousecamOnIdx));
-            lastOff = int32(mousecam_timesTrim(end)*1000) + 7;
-
-        else 
-            mousecam_threshTrim = mousecam_thresh(firstOn:lastOff);
-            
-        end
-
-        screen_onTrim = screen_on(firstOn:lastOff);
-
-        mousecamOnIdx = find(diff([double(mousecam_threshTrim)]) == 1) + 1 ;  
-        mousecamOffIdx = find(diff([double(mousecam_threshTrim)]) == -1);  
-        % So: h5 files are concatenated when the last frames don't have
-        % labels. We can work around this by just taking our frames from
-        % mousecam_times(1:h5(end)), since we know that we don't lose any
-        % data in the unlabeled trailing frames anyways. 
-
-        screenOnFrames = [];
-                
-        % There are some videos where the stimscreen is always on
-        % (presumably a mistake). this just masks those as always true,
-        % since it's consistent
-        if all(screen_onTrim(:))   
-            screenOffMask = true(numel(mousecam_timesTrim),1);
-        else
-            for k = 1:numel(mousecam_timesTrim)
-                exposeMask = (mousecamOnIdx(k):1:(mousecamOffIdx(k)));
-                screenOnFrames(k) = sum(screen_onTrim(exposeMask));
-            end
-            screenOffMask = screenOnFrames' == 0;
-        end
+        % 
+        % mousecam_timesTrim = mousecam_times(1:numel(diameterPx_all{n}));
+        % 
+        % firstOn = int32(mousecam_timesTrim(1)*1000);
+        % lastOff = int32(mousecam_timesTrim(end)*1000) + 7;
+        % 
+        % %mousecam_times knows about frames after the expose information is
+        % %gone. so we can't rely on timelite exposures. Best bet probably
+        % %mousecam_times(end)+7
+        % % or, since sleap is curtailing unlabelled end frames, we need to
+        % % go to (mousecam_times(find(t(end)) and trim screenon and
+        % % mousecamthresh to that
+        % if lastOff > numel(mousecam_thresh)
+        %     mousecam_threshFromStart = mousecam_thresh(firstOn:end);
+        %     mousecamOnIdx = find(diff([double(mousecam_threshFromStart)]) == 1) + 1 ;  
+        %     mousecam_timesTrim = mousecam_times(1:numel(mousecamOnIdx));
+        %     lastOff = int32(mousecam_timesTrim(end)*1000) + 7;
+        % 
+        % else 
+        %     mousecam_threshTrim = mousecam_thresh(firstOn:lastOff);
+        % 
+        % end
+        % 
+        % screen_onTrim = screen_on(firstOn:lastOff);
+        % 
+        % mousecamOnIdx = find(diff([double(mousecam_threshTrim)]) == 1) + 1 ;  
+        % mousecamOffIdx = find(diff([double(mousecam_threshTrim)]) == -1);  
+        % % So: h5 files are truncated when the last frames don't have
+        % % labels. We can work around this by just taking our frames from
+        % % mousecam_times(1:h5(end)), since we know that we don't lose any
+        % % data in the unlabeled trailing frames anyways. 
+        % 
+        % screenOnFrames = [];
+        % 
+        % % There are some videos where the stimscreen is always on
+        % % (presumably a mistake). this just masks those as always true,
+        % % since it's consistent
+        % if all(screen_onTrim(:))   
+        %     screenOffMask = true(numel(mousecam_timesTrim),1);
+        % else
+        %     for k = 1:numel(mousecam_timesTrim)
+        %         exposeMask = (mousecamOnIdx(k):1:(mousecamOffIdx(k)));
+        %         screenOnFrames(k) = sum(screen_onTrim(exposeMask));
+        %     end
+        %     screenOffMask = screenOnFrames' == 0;
+        % end
 
         % Grab the frame times and put them in one cell 
         frameStims(n,1) = mat2cell(mousecam_times,1); 
         frameStims(n,2) = mat2cell(stimOn_times',1); 
         frameStims(n,3) = mat2cell((vertcat(trial_events.values.TrialStimX))',1); 
         frameStims(n,4) = mat2cell(quiescent_trials',1);
-        frameStims(n,5) = mat2cell(screenOffMask',1);
+        frameStims(n,5) = {screenOffMask};
     end 
     
     diameterPxAllFlip = cellfun(@transpose, diameterPx_all, 'UniformOutput', false);
