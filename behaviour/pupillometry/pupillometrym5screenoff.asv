@@ -19,16 +19,16 @@ end
 aniUniq = unique(bhv.animal);
 % initialize cell to store learning days
 aniDates = cell(numel(aniUniq),2);
-for n = 1:numel(aniUniq); 
-    id = aniUniq{n};
-    aniDates(n,1) = {id};
+for curr_animal = 1:numel(aniUniq); 
+    id = aniUniq{curr_animal};
+    aniDates(curr_animal,1) = {id};
     % Get only recordings for this animal
     daysID = bhv(strcmp(bhv.animal, id),:);
     if any(daysID.days_from_learning == 0) % check if there was a learning day
         ld = daysID(daysID.days_from_learning == 0, :);
-        aniDates(n,2) = ld.rec_day; % set learning date
+        aniDates(curr_animal,2) = ld.rec_day; % set learning date
     else
-        aniDates(n,2) = {NaN}; % if no learning date, NaN
+        aniDates(curr_animal,2) = {NaN}; % if no learning date, NaN
     end
 end
 
@@ -58,7 +58,7 @@ learnDayIdx_allQui    = [];
 mouseIdx_allQui       = []; 
 
 % Loop across all mice
-for m = 4%1:numel(mouseIDs)
+for m = 11%1:numel(mouseIDs)
     animalID = mouseIDs{m};
     fprintf(animalID); fprintf(' \n \n');
     dataDir = fullfile('C:\Users\pgorman\Documents\SLEAP\Outputs_Sorted\lcr_passive', animalID);  
@@ -200,15 +200,22 @@ for m = 4%1:numel(mouseIDs)
     
     passiveM = plab.find_recordings(animalID, [], 'lcr_passive');
     
-    % Now get frame times for each recording, 
+    %% Now get frame times for each recording, 
     
     [s,recs] = size(passiveM);
     
+    
+    % Plotting code to look at fourier transforms and assess periodic
+    % noise
+    figure; tiledlayout("vertical")
+    T = 1/30;
+    fq = 1/T;
+
     frameStims = cell(recs,5); 
-    for n = 1:recs 
-        animal = passiveM(n).animal; 
-        rec_day = passiveM(n).day; 
-        rec_time = passiveM(n).recording{end}; 
+    for curr_rec = 1:4%:recs 
+        animal = passiveM(curr_rec).animal; 
+        rec_day = passiveM(curr_rec).day; 
+        rec_time = passiveM(curr_rec).recording{end}; 
         verbose = false; % this turns on/off progress display in command line 
     
         % Loading components separately. Could maybe be more efficient but is
@@ -224,39 +231,57 @@ for m = 4%1:numel(mouseIDs)
                     timelite.timestamps <= stimOn_times(x)+stim_window(2))), ...
                     (1:length(stimOn_times))');
         
+        % plot the fourier transform pre-masking
+        ex = diameterPx_all{curr_rec,1};
+        exfill = fillmissing(ex,'linear');
+        fex = fft(exfill - mean(exfill)); % fast fourier transform
+        fourex = (0:length(exfill)-1)*fq/length(exfill);
+        
+        nexttile
+        n = length(exfill);
+        fshift = (-n/2:n/2-1)*(fq/n);
+        fexshift = fftshift(fex);
+        plot(fshift,abs(fexshift))
+        xlim([0,20]);
+        ylim([0,5000]);
+        xlabel('Frequency (Hz)')
+        ylabel('Magnitude')
+        title("video "+curr_rec)
+
         % Get mask for screen-off frames
         
-        % New approach
-        % Take mc_times
-        % Make mc_off by diff(mc_thresh) == -1
-        % get mc_off_timelite by interp1(mc_off, mc_off, mc_times, next)
-        % for mc_times 
-            % mask = isbetween(timelite.timestamps, mc_on(n), mc_off(n))
-            % screenOn(n) = stimscreen(mask)
-            % may have NaNs at end
-        % then crop this to length of sleap (and mc_times if necessary)
-        % then where it's false, set 1 in final mask (true and NaN
-        % excluded)
+        mousecamOffTimelite = timelite.timestamps(find(diff([double(mousecam_thresh)]) == -1));
+        mousecamOffTimes = interp1(mousecamOffTimelite, mousecamOffTimelite, mousecam_times, "next");
         
-        mousecamOffTimelite = find(diff([double(mousecam_thresh)]) == -1);
-        mousecamOffTimeliteT = mousecamOffTimelite/1000;
-        mousecamOffTimes = interp1(mousecamOffTimeliteT, mousecamOffTimeliteT, mousecam_times, "next");
-       
+        violetOn = timelite.data(:,8) >= 0.05;
+        blueOn = timelite.data(:,9) >= 0.05;
+
         screenOnFrames = [];
         screenOnFramesCt = [];
 
-        for k = 1:numel(mousecam_times)
-            exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
-            screenOnFrames(k) = any(screen_on(exposeMask));
-            screenOnFramesCt(k) = sum(screen_on(exposeMask));
+        if all(screen_on(:))   
+            screenOffMask = true(numel(diameterPx_all{curr_rec}),1);
+        else 
+            for k = 1:numel(mousecam_times)
+                exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
+                screenOnFrames(k) = any(screen_on(exposeMask));
+                screenOnFramesCt(k) = sum(screen_on(exposeMask));
+            end
+            figure;histogram(screenOnFramesCt);
+            screenOff = screenOnFrames == 0;
+            screenOffMask = screenOff(1:numel(diameterPx_all{curr_rec}));
         end
         
+        for k = 1:numel(mousecam_times)
+                exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
+                blueOnFrames(k) = any(blueOn(exposeMask));
+                blueOnFramesCt(k) = sum(blueOn(exposeMask));
+        end
+        figure;histogram(violetOnFramesCt);
         screenOff = screenOnFrames == 0;
-        screenOffFrames = screenOff(1:numel(diameterPx_all{n}))
+        screenOffMask = screenOff(1:numel(diameterPx_all{curr_rec}));
 
-
-
-        % also: check fourier transform after screenoff filtering, and of
+        % also: check fourier transform before and after screenoff filtering, and of
         % the videos where screen is always on
 
         % baseline correct by using a 50-100ms avg window instead of 0
@@ -264,66 +289,12 @@ for m = 4%1:numel(mouseIDs)
 
         % do movmean at end
 
-            
-
-        % somehow mousecam_times is capable of knowing about frames that
-        % don't exist on the thresh either... we have to truncate to the
-        % length of the number of exposures present in the thresh, after
-        % the first one from mousecam_times. bizarre behaviour
-        % min(numel(find(diff([double(mousecam_thresh)]) == 1) +1),
-        
-        mousecam_timesTrim = mousecam_times(1:numel(diameterPx_all{n}));
-
-        firstOn = int32(mousecam_timesTrim(1)*1000);
-        lastOff = int32(mousecam_timesTrim(end)*1000) + 7;
-
-        %mousecam_times knows about frames after the expose information is
-        %gone. so we can't rely on timelite exposures. Best bet probably
-        %mousecam_times(end)+7
-        % or, since sleap is curtailing unlabelled end frames, we need to
-        % go to (mousecam_times(find(t(end)) and trim screenon and
-        % mousecamthresh to that
-        if lastOff > numel(mousecam_thresh)
-            mousecam_threshFromStart = mousecam_thresh(firstOn:end);
-            mousecamOnIdx = find(diff([double(mousecam_threshFromStart)]) == 1) + 1 ;  
-            mousecam_timesTrim = mousecam_times(1:numel(mousecamOnIdx));
-            lastOff = int32(mousecam_timesTrim(end)*1000) + 7;
-
-        else 
-            mousecam_threshTrim = mousecam_thresh(firstOn:lastOff);
-            
-        end
-
-        screen_onTrim = screen_on(firstOn:lastOff);
-
-        mousecamOnIdx = find(diff([double(mousecam_threshTrim)]) == 1) + 1 ;  
-        mousecamOffIdx = find(diff([double(mousecam_threshTrim)]) == -1);  
-        % So: h5 files are concatenated when the last frames don't have
-        % labels. We can work around this by just taking our frames from
-        % mousecam_times(1:h5(end)), since we know that we don't lose any
-        % data in the unlabeled trailing frames anyways. 
-
-        screenOnFrames = [];
-                
-        % There are some videos where the stimscreen is always on
-        % (presumably a mistake). this just masks those as always true,
-        % since it's consistent
-        if all(screen_onTrim(:))   
-            screenOffMask = true(numel(mousecam_timesTrim),1);
-        else
-            for k = 1:numel(mousecam_timesTrim)
-                exposeMask = (mousecamOnIdx(k):1:(mousecamOffIdx(k)));
-                screenOnFrames(k) = sum(screen_onTrim(exposeMask));
-            end
-            screenOffMask = screenOnFrames' == 0;
-        end
-
         % Grab the frame times and put them in one cell 
-        frameStims(n,1) = mat2cell(mousecam_times,1); 
-        frameStims(n,2) = mat2cell(stimOn_times',1); 
-        frameStims(n,3) = mat2cell((vertcat(trial_events.values.TrialStimX))',1); 
-        frameStims(n,4) = mat2cell(quiescent_trials',1);
-        frameStims(n,5) = mat2cell(screenOffMask',1);
+        frameStims(curr_rec,1) = {mousecam_times}; 
+        frameStims(curr_rec,2) = {stimOn_times'}; 
+        frameStims(curr_rec,3) = {(vertcat(trial_events.values.TrialStimX))'}; 
+        frameStims(curr_rec,4) = {quiescent_trials'};
+        frameStims(curr_rec,5) = {screenOffMask};
     end 
     
     diameterPxAllFlip = cellfun(@transpose, diameterPx_all, 'UniformOutput', false);
@@ -360,20 +331,20 @@ for m = 4%1:numel(mouseIDs)
     nWindow = numel(-pre:post);
     nRecs = min(nFiles, size(frameStims,1)); 
     
-    for n = 1:nRecs
+    for this_rec = 1:nRecs
         % grab stimulus/frame info for this recording 
-        frameTimes = frameStims{n,1};
-        stimTimes  = frameStims{n,2};
-        stimPosVec = frameStims{n,3};    
+        frameTimes = frameStims{this_rec,1};
+        stimTimes  = frameStims{this_rec,2};
+        stimPosVec = frameStims{this_rec,3};    
         
         % pupil trace for this recording
-        trace = pupilPerFile{n}(:); % ensure column vector
+        trace = pupilPerFile{this_rec}(:); % ensure column vector
         nFrames = numel(trace);
         
         % convert stim times to nearest (previous) frame indices
         % ensure stimTimes and stimPosVec are column vectors 
-        stimTimes = frameStims{n,2};
-        stimPosVec = frameStims{n,3};
+        stimTimes = frameStims{this_rec,2};
+        stimPosVec = frameStims{this_rec,3};
         stimTimes = stimTimes(:);
         stimPosVec = stimPosVec(:);
     
@@ -382,7 +353,7 @@ for m = 4%1:numel(mouseIDs)
         % if lengths differ for some reason, trim to the minimum and warn
         if numel(stimFrameIdx) ~= numel(stimPosVec)
             warning('Recording %d: stimTimes (%d) and stimPosVec (%d) differ in length — trimming to min length.', ...
-                    n, numel(stimFrameIdx), numel(stimPosVec));
+                    this_rec, numel(stimFrameIdx), numel(stimPosVec));
             L = min(numel(stimFrameIdx), numel(stimPosVec));
             stimFrameIdx = stimFrameIdx(1:L);
             stimPosVec   = stimPosVec(1:L);
@@ -432,7 +403,7 @@ for m = 4%1:numel(mouseIDs)
         % append to global arrays
         psthData       = [psthData; localMat]; %#ok<AGROW>
         orientationIdx = [orientationIdx; localOrient]; %#ok<AGROW>
-        dayIdx         = [dayIdx; repmat(n, size(localMat,1), 1)]; %#ok<AGROW>
+        dayIdx         = [dayIdx; repmat(this_rec, size(localMat,1), 1)]; %#ok<AGROW>
         
         % readable labels for trialInfo
         for tt = 1:numel(localOrient)
@@ -442,10 +413,10 @@ for m = 4%1:numel(mouseIDs)
             else ol = 'other'; end
             orientationLab{end+1,1} = ol; %#ok<SAGROW>
             % store the rec day string if passiveM has it
-            if isfield(passiveM, 'day') && numel(passiveM) >= n
-                recDayLabels{end+1,1} = passiveM(n).day; %#ok<SAGROW>
+            if isfield(passiveM, 'day') && numel(passiveM) >= this_rec
+                recDayLabels{end+1,1} = passiveM(this_rec).day; %#ok<SAGROW>
             else
-                recDayLabels{end+1,1} = sprintf('rec%d', n); %#ok<SAGROW>
+                recDayLabels{end+1,1} = sprintf('rec%d', this_rec); %#ok<SAGROW>
             end
         end
         
@@ -472,9 +443,9 @@ for m = 4%1:numel(mouseIDs)
 
         % append for for quiescent 
         
-        localMatQui = localMat(frameStims{n,4}',:);
-        localOrientQui = localOrient(frameStims{n,4}',:);
-        localMouseQui = localMouse(frameStims{n,4}',:);
+        localMatQui = localMat(frameStims{this_rec,4}',:);
+        localOrientQui = localOrient(frameStims{this_rec,4}',:);
+        localMouseQui = localMouse(frameStims{this_rec,4}',:);
 
         psthData_allQui       = [psthData_allQui; localMatQui];                %#ok<AGROW>
         orientationIdx_allQui = [orientationIdx_allQui; localOrientQui];       %#ok<AGROW>
@@ -482,14 +453,14 @@ for m = 4%1:numel(mouseIDs)
 
         % learn-day relative index for this recording (n is recording index)
         if exist('idxLearn','var') && ~isempty(idxLearn) && ~isnan(idxLearn)
-            rel = n - idxLearn;   
+            rel = this_rec - idxLearn;   
         else
             rel = NaN;            
         end
         localDay = repmat(rel, nTrialsLocal,1);
         learnDayIdx_all = [learnDayIdx_all; localDay]; %#ok<AGROW>
 
-        localDayQui = localDay(frameStims{n,4}',:);
+        localDayQui = localDay(frameStims{this_rec,4}',:);
         learnDayIdx_allQui = [learnDayIdx_allQui; localDayQui]; %#ok<AGROW>
     end
 end
@@ -577,7 +548,7 @@ pupilDiamByFrame = psthData_all;
 
 pupils = table(animalID, mouseIdx_all, learnDayIdx_all, orientationDir, pupilDiamByFrame);
 
-% % 
-% animal = 'AM014'
-% rec_day =  '2024-01-17'
-% rec_time = '1151'
+% 
+animal = 'AM015'
+rec_day =  '2024-01-17'
+rec_time = '1206'
