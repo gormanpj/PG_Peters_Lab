@@ -212,7 +212,7 @@ for m = 11%1:numel(mouseIDs)
     fq = 1/T;
 
     frameStims = cell(recs,5); 
-    for curr_rec = 1:4%:recs 
+    for curr_rec = 8%:recs 
         animal = passiveM(curr_rec).animal; 
         rec_day = passiveM(curr_rec).day; 
         rec_time = passiveM(curr_rec).recording{end}; 
@@ -232,21 +232,21 @@ for m = 11%1:numel(mouseIDs)
                     (1:length(stimOn_times))');
         
         % plot the fourier transform pre-masking
-        ex = diameterPx_all{curr_rec,1};
-        exfill = fillmissing(ex,'linear');
-        fex = fft(exfill - mean(exfill)); % fast fourier transform
-        fourex = (0:length(exfill)-1)*fq/length(exfill);
-        
-        nexttile
-        n = length(exfill);
-        fshift = (-n/2:n/2-1)*(fq/n);
-        fexshift = fftshift(fex);
-        plot(fshift,abs(fexshift))
-        xlim([0,20]);
-        ylim([0,5000]);
-        xlabel('Frequency (Hz)')
-        ylabel('Magnitude')
-        title("video "+curr_rec)
+        % ex = indigos%diameterPx_all{curr_rec,1};
+        % exfill = fillmissing(ex,'linear');
+        % fex = fft(exfill - mean(exfill)); % fast fourier transform
+        % fourex = (0:length(exfill)-1)*fq/length(exfill);
+        % 
+        % nexttile
+        % n = length(exfill);
+        % fshift = (-n/2:n/2-1)*(fq/n);
+        % fexshift = fftshift(fex);
+        % plot(fshift,abs(fexshift), 'b')
+        % xlim([0,20]);
+        % ylim([0,5000]);
+        % xlabel('Frequency (Hz)')
+        % ylabel('Magnitude')
+        % title("video "+curr_rec)
 
         % Get mask for screen-off frames
         
@@ -277,9 +277,8 @@ for m = 11%1:numel(mouseIDs)
                 blueOnFrames(k) = any(blueOn(exposeMask));
                 blueOnFramesCt(k) = sum(blueOn(exposeMask));
         end
-        figure;histogram(violetOnFramesCt);
-        screenOff = screenOnFrames == 0;
-        screenOffMask = screenOff(1:numel(diameterPx_all{curr_rec}));
+        figure;histogram(blueOnFramesCt);
+        
 
         % also: check fourier transform before and after screenoff filtering, and of
         % the videos where screen is always on
@@ -319,7 +318,7 @@ for m = 11%1:numel(mouseIDs)
     diameterPxAllFlipFiltDeriv = cellfun(@diff, diameterPxAllFlipFiltMov, 'UniformOutput', false);
 
     % Output to use
-    pupilPerFile = diameterZAllFlipFiltDeriv;  
+    pupilPerFile = diameterPxAllFlipFilt;  
     
     % Prepare accumulators
     psthData       = [];   % will become [nTrials x (pre+post+1)]
@@ -331,7 +330,7 @@ for m = 11%1:numel(mouseIDs)
     nWindow = numel(-pre:post);
     nRecs = min(nFiles, size(frameStims,1)); 
     
-    for this_rec = 1:nRecs
+    for this_rec = 8%1:nRecs
         % grab stimulus/frame info for this recording 
         frameTimes = frameStims{this_rec,1};
         stimTimes  = frameStims{this_rec,2};
@@ -342,12 +341,6 @@ for m = 11%1:numel(mouseIDs)
         nFrames = numel(trace);
         
         % convert stim times to nearest (previous) frame indices
-        % ensure stimTimes and stimPosVec are column vectors 
-        stimTimes = frameStims{this_rec,2};
-        stimPosVec = frameStims{this_rec,3};
-        stimTimes = stimTimes(:);
-        stimPosVec = stimPosVec(:);
-    
         stimFrameIdx = interp1(frameTimes, (1:numel(frameTimes))', stimTimes, 'previous', NaN);
     
         % if lengths differ for some reason, trim to the minimum and warn
@@ -549,6 +542,30 @@ pupilDiamByFrame = psthData_all;
 pupils = table(animalID, mouseIdx_all, learnDayIdx_all, orientationDir, pupilDiamByFrame);
 
 % 
-animal = 'AM015'
-rec_day =  '2024-01-17'
+animal = 'AM026'
+rec_day =  '2024-07-23'
 rec_time = '1206'
+
+
+%%%%%% AP TEST
+
+thresh = 0.2;
+
+violet_on = timelite.timestamps(find(diff(timelite.data(:,8) > thresh) == 1)+1);
+blue_on = timelite.timestamps(find(diff(timelite.data(:,9) > thresh) == 1)+1);
+
+pupil_tl = interp1(mousecam_times,diameterPx_all{4},timelite.timestamps,'linear','extrap');
+
+violet_regressor = histcounts(violet_on,[timelite.timestamps;Inf])';
+blue_regressor = histcounts(blue_on,[timelite.timestamps;Inf])';
+
+
+[k,predicted_signals] = ap.regresskernel([violet_regressor,blue_regressor]',pupil_tl',[-200:200],0,[false,false],1);
+
+predicted_signals_mousecam = interp1(timelite.timestamps,predicted_signals,mousecam_times,'linear','extrap');
+
+
+
+
+
+
