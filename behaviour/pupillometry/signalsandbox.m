@@ -192,9 +192,25 @@ plot(indigos, 'c')
 indigoLow = lowpass(indigos, 6, 30);
 plot(indigoLow, 'r');
 
-rights = psthData(orientationIdx == 3,:);
+rights = psthData(orientationIdx == 1,:);
 
 figure; hold on 
 for stims = 1:50
     plot(rights(stims,:), 'k')
+end
+
+avg = mean(rights, 1,"omitmissing");
+plot(avg, 'r', 'LineWidth',2)
+
+figure; tiledlayout
+for circ = 1:nRecs
+    rights = psthData(orientationIdx == 3 & dayIdx == circ,:);
+    
+    nexttile; hold on 
+    for stims = 1:50
+        plot(rights(stims,:), 'k')
+    end
+    avg = mean(rights, 1,"omitmissing");
+    plot(avg, 'r', 'LineWidth',2)
+    hold off
 end

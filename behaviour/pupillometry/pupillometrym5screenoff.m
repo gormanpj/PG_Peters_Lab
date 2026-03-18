@@ -212,7 +212,7 @@ for m = 11%1:numel(mouseIDs)
     fq = 1/T;
 
     frameStims = cell(recs,5); 
-    for curr_rec = 8%:recs 
+    for curr_rec = 1:recs 
         animal = passiveM(curr_rec).animal; 
         rec_day = passiveM(curr_rec).day; 
         rec_time = passiveM(curr_rec).recording{end}; 
@@ -299,11 +299,11 @@ for m = 11%1:numel(mouseIDs)
     diameterPxAllFlip = cellfun(@transpose, diameterPx_all, 'UniformOutput', false);
     diameterZAllFlip = cellfun(@transpose, diameterZ_all, 'UniformOutput', false);
     
-    for i = 1:numel(diameterZAllFlip)
-        mask = frameStims{i,5}(:);
-        diameterZAllFlip{i}(~mask) = NaN;
-        diameterPxAllFlip{i}(~mask) = NaN;
-    end
+    % for i = 1:numel(diameterZAllFlip)
+    %     mask = frameStims{i,5}(:);
+    %     diameterZAllFlip{i}(~mask) = NaN;
+    %     diameterPxAllFlip{i}(~mask) = NaN;
+    % end
 
     %Lowpass filter to get rid of jitteriness
     diameterZAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 4, 30), diameterZAllFlip, 'UniformOutput', false);
@@ -319,6 +319,14 @@ for m = 11%1:numel(mouseIDs)
 
     % Output to use
     pupilPerFile = diameterPxAllFlipFilt;  
+
+    
+    % Mask fillmissing'ed values back out 
+
+    basemasks = cellfun(@isnan, diameterPx_all, 'UniformOutput',false); 
+    for nanmask = 1:numel(pupilPerFile);
+        pupilPerFile{nanmask}(basemasks{nanmask}) = NaN; 
+    end
     
     % Prepare accumulators
     psthData       = [];   % will become [nTrials x (pre+post+1)]
@@ -330,7 +338,7 @@ for m = 11%1:numel(mouseIDs)
     nWindow = numel(-pre:post);
     nRecs = min(nFiles, size(frameStims,1)); 
     
-    for this_rec = 8%1:nRecs
+    for this_rec = 1:nRecs
         % grab stimulus/frame info for this recording 
         frameTimes = frameStims{this_rec,1};
         stimTimes  = frameStims{this_rec,2};
@@ -505,7 +513,7 @@ for di = 1:nRel
     yline(0,'Color','k','Alpha',0.5);
     xlabel('Frames (relative to stimulus)');
     ylabel('Pupil diameter derivative (arb)');
-    ylim([-0.05, 0.05]);
+    %ylim([-0.05, 0.05]);
     title(sprintf('Learn day = %d', rel));
 
     hold off;
@@ -540,32 +548,32 @@ end
 pupilDiamByFrame = psthData_all;
 
 pupils = table(animalID, mouseIdx_all, learnDayIdx_all, orientationDir, pupilDiamByFrame);
-
 % 
-animal = 'AM026'
-rec_day =  '2024-07-23'
-rec_time = '1206'
-
-
-%%%%%% AP TEST
-
-thresh = 0.2;
-
-violet_on = timelite.timestamps(find(diff(timelite.data(:,8) > thresh) == 1)+1);
-blue_on = timelite.timestamps(find(diff(timelite.data(:,9) > thresh) == 1)+1);
-
-pupil_tl = interp1(mousecam_times,diameterPx_all{4},timelite.timestamps,'linear','extrap');
-
-violet_regressor = histcounts(violet_on,[timelite.timestamps;Inf])';
-blue_regressor = histcounts(blue_on,[timelite.timestamps;Inf])';
-
-
-[k,predicted_signals] = ap.regresskernel([violet_regressor,blue_regressor]',pupil_tl',[-200:200],0,[false,false],1);
-
-predicted_signals_mousecam = interp1(timelite.timestamps,predicted_signals,mousecam_times,'linear','extrap');
-
-
-
-
-
-
+% % 
+% animal = 'AM026'
+% rec_day =  '2024-07-23'
+% rec_time = '1206'
+% 
+% 
+% %%%%%% AP TEST
+% 
+% thresh = 0.2;
+% 
+% violet_on = timelite.timestamps(find(diff(timelite.data(:,8) > thresh) == 1)+1);
+% blue_on = timelite.timestamps(find(diff(timelite.data(:,9) > thresh) == 1)+1);
+% 
+% pupil_tl = interp1(mousecam_times,diameterPx_all{4},timelite.timestamps,'linear','extrap');
+% 
+% violet_regressor = histcounts(violet_on,[timelite.timestamps;Inf])';
+% blue_regressor = histcounts(blue_on,[timelite.timestamps;Inf])';
+% 
+% 
+% [k,predicted_signals] = ap.regresskernel([violet_regressor,blue_regressor]',pupil_tl',[-200:200],0,[false,false],1);
+% 
+% predicted_signals_mousecam = interp1(timelite.timestamps,predicted_signals,mousecam_times,'linear','extrap');
+% 
+% 
+% 
+% 
+% 
+% 

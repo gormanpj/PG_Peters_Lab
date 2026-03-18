@@ -186,4 +186,18 @@ plot(diameterPx_all{4},'k')
 plot(bluesfilled,'b')
 plot(violetsfilled,'m')
 
-indigos = (bluesfilled+violetsfilled)/*2
+indigos = (bluesfilled+violetsfilled)/2;
+plot(indigos, 'c')
+
+indigoLow = lowpass(indigos, 6, 30);
+plot(indigoLow, 'r');
+
+rights = psthData(orientationIdx == 3,:);
+
+figure; hold on 
+for stims = 1:50
+    plot(rights(stims,:), 'k')
+end
+
+avg = mean(rights, 1,"omitmissing");
+plot(avg, 'r', 'LineWidth',2)
