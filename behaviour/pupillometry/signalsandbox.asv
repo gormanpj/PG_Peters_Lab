@@ -192,7 +192,7 @@ plot(indigos, 'c')
 indigoLow = lowpass(indigos, 6, 30);
 plot(indigoLow, 'r');
 
-rights = psthData(orientationIdx == 3,:);
+rights = psthData(orientationIdx == 1,:);
 
 figure; hold on 
 for stims = 1:50
@@ -201,3 +201,109 @@ end
 
 avg = mean(rights, 1,"omitmissing");
 plot(avg, 'r', 'LineWidth',2)
+
+figure; tiledlayout
+for circ = 1:nRecs
+    rights = psthData(orientationIdx == 3 & dayIdx == circ,:);
+    
+    nexttile; hold on 
+    for stims = 1:50
+        plot(rights(stims,:), 'k')
+    end
+    avg = mean(rights, 1,"omitmissing");
+    plot(avg, 'r', 'LineWidth',2)
+    hold off
+end
+
+
+figure;hold on 
+for toodle = 1:9
+    plot(diameterPx_all{toodle})
+end 
+hold off
+
+rights = psthData_all(orientationIdx_all == 3 & learnDayIdx_all == 1,:);
+
+figure; tiledlayout 
+for day = min(learnDayIdx_all):max(learnDayIdx_all)
+    rights = psthData_all(orientationIdx_all == 3 & learnDayIdx_all == day,:);
+    nexttile; hold on 
+    for stims = 1:size(rights,1)
+        plot(rights(stims,:), 'k')
+    end
+    avg = mean(rights, 1,"omitmissing");
+    plot(avg, 'r', 'LineWidth',2)
+    title(day)
+    xline(21, 'k--')
+    hold off
+end
+
+col = ['b', 'k', 'r'];
+figure; hold on 
+for orientation = 1:3
+    rights = psthData_allQui(orientationIdx_allQui == orientation & learnDayIdx_allQui == 1,:);
+    avg = mean(rights, 1,"omitmissing");
+    bline = avg(21);
+    avgsub = avg-bline;
+    plot(avgsub, col(orientation), 'LineWidth',2)
+end
+xline(21, 'k--')
+hold off
+
+
+
+orientNames = {'left','center','right'};
+
+figure;
+tiledlayout(3,1,'TileSpacing','compact','Padding','compact');
+
+for oi = 1
+    figure; hold on
+    
+    % All trials for this orientation
+    allMask = orientationIdx_all == oi & learnDayIdx_all == -1;
+    allTraces = psthData_all(allMask, :);
+    
+    % Quiescent trials for this orientation
+    quiMask = orientationIdx_allQui == oi & learnDayIdx_allQui == -1;
+    quiTraces = psthData_allQui(quiMask, :);
+    
+    % Plot all trials in gray
+    for r = 1:size(allTraces,1)
+        plot(x, allTraces(r,:), 'Color', [0.75 0.75 0.75]);
+    end
+    
+    % Mean lines
+    if ~isempty(allTraces)
+        plot(x, mean(allTraces, 1, 'omitnan'), 'k', 'LineWidth', 2);
+    end
+    if ~isempty(quiTraces)
+        plot(x, mean(quiTraces, 1, 'omitnan'), 'b', 'LineWidth', 2);
+    end
+    
+    title(orientNames{oi});
+    xlabel('Frame');
+    ylabel('Diameter');
+    %legend({'all trials','all mean','quiescent mean'}, 'Location', 'best');
+    hold off
+end
+
+figure; hold on
+
+% Plot all trials in light gray
+for r = 1:size(psthData_all,1)
+    plot(x, psthData_all(r,:), 'Color', [0.8 0.8 0.8]);
+end
+
+% Mean of all trials
+plot(x, mean(psthData_all, 1, 'omitnan'), 'k', 'LineWidth', 2);
+
+% Mean of quiescent trials
+plot(x, mean(psthData_allQui, 1, 'omitnan'), 'g', 'LineWidth', 2);
+
+xlabel('Frame');
+ylabel('Diameter');
+title('All trials');
+%legend({'all trials','all mean','quiescent mean'}, 'Location', 'best');
+
+hold off
