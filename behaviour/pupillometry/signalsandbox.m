@@ -159,7 +159,7 @@ for k = 1:numel(mousecam_times)
     exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
     violetOnFrames(k) = any(violetOn(exposeMask));
     violetOnFramesCt(k) = sum(violetOn(exposeMask));
-    end
+end
 figure;histogram(violetOnFramesCt);
 for k = 1:numel(mousecam_times)
     exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));

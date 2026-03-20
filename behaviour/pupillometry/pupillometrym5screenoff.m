@@ -250,11 +250,11 @@ for m = 1:numel(mouseIDs)
 
         % Get mask for screen-off frames
         % 
-        % mousecamOffTimelite = timelite.timestamps(find(diff([double(mousecam_thresh)]) == -1));
-        % mousecamOffTimes = interp1(mousecamOffTimelite, mousecamOffTimelite, mousecam_times, "next");
+        mousecamOffTimelite = timelite.timestamps(find(diff([double(mousecam_thresh)]) == -1));
+        mousecamOffTimes = interp1(mousecamOffTimelite, mousecamOffTimelite, mousecam_times, "next");
         % 
-        % violetOn = timelite.data(:,8) >= 0.05;
-        % blueOn = timelite.data(:,9) >= 0.05;
+        violetOn = timelite.data(:,8) >= 0.05;
+        blueOn = timelite.data(:,9) >= 0.05;
         % 
         % screenOnFrames = [];
         % screenOnFramesCt = [];
@@ -272,13 +272,41 @@ for m = 1:numel(mouseIDs)
         %     screenOffMask = screenOff(1:numel(diameterPx_all{curr_rec}));
         % end
         % 
-        % for k = 1:numel(mousecam_times)
-        %         exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
-        %         blueOnFrames(k) = any(blueOn(exposeMask));
-        %         blueOnFramesCt(k) = sum(blueOn(exposeMask));
-        % end
+        for k = 1:numel(mousecam_times)
+                exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
+                blueOnFrames(k) = any(blueOn(exposeMask));
+                blueOnFramesCt(k) = sum(blueOn(exposeMask));
+        end
         % figure;histogram(blueOnFramesCt);
+        for k = 1:numel(mousecam_times)
+                exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
+                violetOnFrames(k) = any(violetOn(exposeMask));
+                violetOnFramesCt(k) = sum(violetOn(exposeMask));
+        end
         
+        violetOnMask = violetOnFramesCt >= 3;
+        blueOnMask = blueOnFramesCt >= 3;
+        
+        blues = diameterPx_all{4};
+        violets = diameterPx_all{4};
+        blues(~blueOnMask) = NaN;
+        violets(~violetOnMask) = NaN;
+        figure; hold on
+        plot(diameterPx_all{4},'k')
+        plot(blues,'b')
+        plot(violets,'m')
+        
+        bluesfilled = fillmissing(blues, "linear");
+        violetsfilled = fillmissing(violets, "linear");
+        plot(diameterPx_all{4},'k')
+        plot(bluesfilled,'b')
+        plot(violetsfilled,'m')
+        
+        indigos = (bluesfilled+violetsfilled)/2;
+        plot(indigos, 'c')
+        
+        indigoLow = lowpass(indigos, 6, 30);
+        plot(indigoLow, 'r');
 
         % also: check fourier transform before and after screenoff filtering, and of
         % the videos where screen is always on
@@ -313,17 +341,13 @@ for m = 1:numel(mouseIDs)
     diameterZAllFlipFiltSav = cellfun(@(x) sgolayfilt(x, 3, 15), diameterZAllFlipFilt, 'UniformOutput', false);
     diameterPxAllFlipFiltSav = cellfun(@(x) sgolayfilt(x, 3, 15), diameterPxAllFlipFilt, 'UniformOutput', false);
 
-    % Get derivatives
-    diameterZAllFlipFiltDeriv = cellfun(@diff, diameterZAllFlipFiltSav, 'UniformOutput', false);
-    diameterPxAllFlipFiltDeriv = cellfun(@diff, diameterPxAllFlipFiltSav, 'UniformOutput', false);
-
     % Output to use
-    pupilPerFile = diameterZAllFlipFiltDeriv;  
+    pupilPerFile = diameterPxAllFlipFiltSav;  
 
     % Mask fillmissing'ed values back out 
 
     basemasks = cellfun(@isnan, diameterPx_all, 'UniformOutput',false); 
-    for nanmask = 1:numel(pupilPerFile);
+    for nanmask = 1:numel(pupilPerFile)
         pupilPerFile{nanmask}(basemasks{nanmask}) = NaN; 
     end
     
@@ -489,21 +513,91 @@ for m = 1:numel(mouseIDs)
     end
 end
 
+
+
 % new simpler plotting
 col = ['b', 'k', 'r'];
-for day = -2:1 
-    figure; hold on 
+figure; tiledlayout
+
+for day = -2:2 
+    nexttile; hold on 
+
     for orientation = 1:3
-        rights = psthData_allQui(orientationIdx_allQui == orientation & learnDayIdx_allQui == day,:);
-        avg = mean(rights, 1,"omitmissing");
+        subset = psthData_all(orientationIdx_all == orientation & learnDayIdx_all == day,:);
+        
+        % noise might just be caused by sparse trials - drop?
+        trialCoverage = mean(~isnan(subset), 2);
+        subset = subset(trialCoverage >= 0.99, :);  
+        avg = mean(subset, 1,'omitnan');
+        nValid = sum(~isnan(subset), 1);
+
+        sem = std(subset, 0, 1, 'omitnan') ./ sqrt(nValid);
         bline = avg(21);
         avgsub = avg-bline;
-        plot(avgsub, col(orientation), 'LineWidth',2)
+        plot(avgsub, col(orientation), 'LineWidth',4)
+        x = 1:numel(avgsub);
+        upper = avgsub + sem;
+        lower = avgsub - sem;
+        fill([x fliplr(x)], [upper fliplr(lower)], col(orientation), ...
+            'FaceAlpha', 0.2, 'EdgeColor', 'none');
     end
+    ylim([-0.3, 0.3]);
     xline(21, 'k--')
     title(day)
     hold off
 end
+
+%deriv
+
+col = ['b', 'k', 'r'];
+figure; tiledlayout
+for day = -2:2
+    nexttile;hold on
+    
+    for orientation = 1:3
+        subset = psthData_all(orientationIdx_all == orientation & learnDayIdx_all == day, :);
+        
+        % Drop sparse trials
+        trialCoverage = mean(~isnan(subset), 2);
+        subset = subset(trialCoverage >= 0.99, :);
+        
+        % Derivative per trial
+        subsetDeriv = diff(subset, 1, 2);
+        
+        % Mean and SEM of derivative traces
+        avg = mean(subsetDeriv, 1, 'omitnan');
+        nValid = sum(~isnan(subsetDeriv), 1);
+        sem = std(subsetDeriv, 0, 1, 'omitnan') ./ sqrt(nValid);
+        
+        bline = avg(21);
+        avgsub = avg-bline;
+
+        x = 1:numel(avgsub);
+        
+        % Shaded SEM band
+        fill([x fliplr(x)], ...
+             [avgsub + sem, fliplr(avgsub - sem)], ...
+             col(orientation), ...
+             'FaceAlpha', 0.2, 'EdgeColor', 'none');
+        
+        % Mean derivative line
+        plot(x, avgsub, col(orientation), 'LineWidth', 4)
+    end
+    ylim([-0.03, 0.03]);
+
+    xline(20.5, 'k--')   % diff shifts by one sample
+    title(['Derivative, day ' num2str(day)])
+    hold off
+end
+
+
+
+
+
+
+
+
+
 
 [dayOriMeansQ, groupsQ] = ap.groupfun(@(x) mean(x,1,'omitnan'), psthData_allQui, [learnDayIdx_allQui orientationIdx_allQui]);
 [dayOriSemQ, ~] = ap.groupfun(@(x) nanstd(x, 0, 1) ./ sqrt(sum(~isnan(x),1)), psthData_allQui, [learnDayIdx_allQui orientationIdx_allQui]);
