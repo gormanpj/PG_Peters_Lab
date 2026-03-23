@@ -200,8 +200,13 @@ for m = 1:numel(mouseIDs)
     
     passiveM = plab.find_recordings(animalID, [], 'lcr_passive');
     
-    %% Now get frame times for each recording, 
-    
+    %% limit to recording days, not habituation
+    taskIdx = find(strcmp(animalID,bhv{:,"animal"}));
+    taskDays = bhv{:,"rec_day"}(taskIdx);
+    taskMask = ismember({passiveM.day}, {taskDays{:}});
+    passiveM = passiveM(taskMask);
+
+
     [s,recs] = size(passiveM);
     
     
@@ -324,6 +329,12 @@ for m = 1:numel(mouseIDs)
         % frameStims(curr_rec,5) = {screenOffMask};
     end 
     
+    %%FIX ME
+    % hatchet trim to task recordings 
+    diameterPx_all = diameterPx_all(4:end);
+    diameterZ_all = diameterZ_all(4:end);
+    %%FIX ME end
+
     diameterPxAllFlip = cellfun(@transpose, diameterPx_all, 'UniformOutput', false);
     diameterZAllFlip = cellfun(@transpose, diameterZ_all, 'UniformOutput', false);
     
@@ -340,6 +351,11 @@ for m = 1:numel(mouseIDs)
     % try savgol after
     diameterZAllFlipFiltSav = cellfun(@(x) sgolayfilt(x, 3, 15), diameterZAllFlipFilt, 'UniformOutput', false);
     diameterPxAllFlipFiltSav = cellfun(@(x) sgolayfilt(x, 3, 15), diameterPxAllFlipFilt, 'UniformOutput', false);
+
+    % for just savgol
+    % diameterZAllFlipSav = cellfun(@(x) sgolayfilt(x, 3, 15), diameterZAllFlip, 'UniformOutput', false);
+    % diameterPxAllFlipSav = cellfun(@(x) sgolayfilt(x, 3, 15), diameterPxAllFlip, 'UniformOutput', false);
+
 
     % Output to use
     pupilPerFile = diameterZAllFlipFiltSav;  

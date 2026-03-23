@@ -200,8 +200,13 @@ for m = 1:numel(mouseIDs)
     
     passiveM = plab.find_recordings(animalID, [], 'lcr_passive');
     
-    %% Now get frame times for each recording, 
-    
+    %% limit to recording days, not habituation
+    taskIdx = find(strcmp(animalID,bhv{:,"animal"}));
+    taskDays = bhv{:,"rec_day"}(taskIdx);
+    taskMask = ismember({passiveM.day}, {taskDays{:}});
+    passiveM = passiveM(taskMask);
+
+
     [s,recs] = size(passiveM);
     
     
@@ -250,63 +255,63 @@ for m = 1:numel(mouseIDs)
 
         % Get mask for screen-off frames
         % 
-        mousecamOffTimelite = timelite.timestamps(find(diff([double(mousecam_thresh)]) == -1));
-        mousecamOffTimes = interp1(mousecamOffTimelite, mousecamOffTimelite, mousecam_times, "next");
-        % 
-        violetOn = timelite.data(:,8) >= 0.05;
-        blueOn = timelite.data(:,9) >= 0.05;
-        % 
-        % screenOnFrames = [];
-        % screenOnFramesCt = [];
-        % 
-        % if all(screen_on(:))   
-        %     screenOffMask = true(numel(diameterPx_all{curr_rec}),1);
-        % else 
-        %     for k = 1:numel(mousecam_times)
+        % mousecamOffTimelite = timelite.timestamps(find(diff([double(mousecam_thresh)]) == -1));
+        % mousecamOffTimes = interp1(mousecamOffTimelite, mousecamOffTimelite, mousecam_times, "next");
+        % % 
+        % violetOn = timelite.data(:,8) >= 0.05;
+        % blueOn = timelite.data(:,9) >= 0.05;
+        % % 
+        % % screenOnFrames = [];
+        % % screenOnFramesCt = [];
+        % % 
+        % % if all(screen_on(:))   
+        % %     screenOffMask = true(numel(diameterPx_all{curr_rec}),1);
+        % % else 
+        % %     for k = 1:numel(mousecam_times)
+        % %         exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
+        % %         screenOnFrames(k) = any(screen_on(exposeMask));
+        % %         screenOnFramesCt(k) = sum(screen_on(exposeMask));
+        % %     end
+        % %     % figure;histogram(screenOnFramesCt);
+        % %     screenOff = screenOnFrames == 0;
+        % %     screenOffMask = screenOff(1:numel(diameterPx_all{curr_rec}));
+        % % end
+        % % 
+        % for k = 1:numel(mousecam_times)
         %         exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
-        %         screenOnFrames(k) = any(screen_on(exposeMask));
-        %         screenOnFramesCt(k) = sum(screen_on(exposeMask));
-        %     end
-        %     % figure;histogram(screenOnFramesCt);
-        %     screenOff = screenOnFrames == 0;
-        %     screenOffMask = screenOff(1:numel(diameterPx_all{curr_rec}));
+        %         blueOnFrames(k) = any(blueOn(exposeMask));
+        %         blueOnFramesCt(k) = sum(blueOn(exposeMask));
+        % end
+        % % figure;histogram(blueOnFramesCt);
+        % for k = 1:numel(mousecam_times)
+        %         exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
+        %         violetOnFrames(k) = any(violetOn(exposeMask));
+        %         violetOnFramesCt(k) = sum(violetOn(exposeMask));
         % end
         % 
-        for k = 1:numel(mousecam_times)
-                exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
-                blueOnFrames(k) = any(blueOn(exposeMask));
-                blueOnFramesCt(k) = sum(blueOn(exposeMask));
-        end
-        % figure;histogram(blueOnFramesCt);
-        for k = 1:numel(mousecam_times)
-                exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
-                violetOnFrames(k) = any(violetOn(exposeMask));
-                violetOnFramesCt(k) = sum(violetOn(exposeMask));
-        end
-        
-        violetOnMask = violetOnFramesCt >= 3;
-        blueOnMask = blueOnFramesCt >= 3;
-        
-        blues = diameterPx_all{4};
-        violets = diameterPx_all{4};
-        blues(~blueOnMask) = NaN;
-        violets(~violetOnMask) = NaN;
-        figure; hold on
-        plot(diameterPx_all{4},'k')
-        plot(blues,'b')
-        plot(violets,'m')
-        
-        bluesfilled = fillmissing(blues, "linear");
-        violetsfilled = fillmissing(violets, "linear");
-        plot(diameterPx_all{4},'k')
-        plot(bluesfilled,'b')
-        plot(violetsfilled,'m')
-        
-        indigos = (bluesfilled+violetsfilled)/2;
-        plot(indigos, 'c')
-        
-        indigoLow = lowpass(indigos, 6, 30);
-        plot(indigoLow, 'r');
+        % violetOnMask = violetOnFramesCt >= 3;
+        % blueOnMask = blueOnFramesCt >= 3;
+        % 
+        % blues = diameterPx_all{4};
+        % violets = diameterPx_all{4};
+        % blues(~blueOnMask) = NaN;
+        % violets(~violetOnMask) = NaN;
+        % figure; hold on
+        % plot(diameterPx_all{4},'k')
+        % plot(blues,'b')
+        % plot(violets,'m')
+        % 
+        % bluesfilled = fillmissing(blues, "linear");
+        % violetsfilled = fillmissing(violets, "linear");
+        % plot(diameterPx_all{4},'k')
+        % plot(bluesfilled,'b')
+        % plot(violetsfilled,'m')
+        % 
+        % indigos = (bluesfilled+violetsfilled)/2;
+        % plot(indigos, 'c')
+        % 
+        % indigoLow = lowpass(indigos, 6, 30);
+        % plot(indigoLow, 'r');
 
         % also: check fourier transform before and after screenoff filtering, and of
         % the videos where screen is always on
@@ -324,6 +329,9 @@ for m = 1:numel(mouseIDs)
         % frameStims(curr_rec,5) = {screenOffMask};
     end 
     
+    % hatchet trim to task recordings
+    diameterPx_all = diameterPx_all(4:end);
+
     diameterPxAllFlip = cellfun(@transpose, diameterPx_all, 'UniformOutput', false);
     diameterZAllFlip = cellfun(@transpose, diameterZ_all, 'UniformOutput', false);
     
@@ -341,8 +349,13 @@ for m = 1:numel(mouseIDs)
     diameterZAllFlipFiltSav = cellfun(@(x) sgolayfilt(x, 3, 15), diameterZAllFlipFilt, 'UniformOutput', false);
     diameterPxAllFlipFiltSav = cellfun(@(x) sgolayfilt(x, 3, 15), diameterPxAllFlipFilt, 'UniformOutput', false);
 
+    % for just savgol
+    % diameterZAllFlipSav = cellfun(@(x) sgolayfilt(x, 3, 15), diameterZAllFlip, 'UniformOutput', false);
+    % diameterPxAllFlipSav = cellfun(@(x) sgolayfilt(x, 3, 15), diameterPxAllFlip, 'UniformOutput', false);
+
+
     % Output to use
-    pupilPerFile = diameterPxAllFlipFiltSav;  
+    pupilPerFile = diameterZAllFlipFiltSav;  
 
     % Mask fillmissing'ed values back out 
 
@@ -362,7 +375,7 @@ for m = 1:numel(mouseIDs)
     nRecs = min(nFiles, size(frameStims,1)); 
 
     %troubleshoot plots
-    figure; t =  tiledlayout; title(t,mouseIDs{m})
+    % figure; t =  tiledlayout; title(t,mouseIDs{m})
 
     for this_rec = 1:nRecs
         % grab stimulus/frame info for this recording 
@@ -496,20 +509,20 @@ for m = 1:numel(mouseIDs)
         learnDayIdx_allQui = [learnDayIdx_allQui; localDayQui]; %#ok<AGROW>
         
         % troublseshoot plot code 
-        rights = psthData(orientationIdx == 3 & dayIdx == this_rec,:);
-        
-        nexttile; hold on 
-        for stims = 1:size(rights,1)
-            plot(rights(stims,:), 'k')
-        end
-        avg = mean(rights, 1,"omitmissing");
-        plot(avg, 'r', 'LineWidth',2)
-        if this_rec == idxLearn
-            title(this_rec + "*")
-        else
-            title(this_rec)
-        end
-        hold off
+        % rights = psthData(orientationIdx == 3 & dayIdx == this_rec,:);
+        % 
+        % nexttile; hold on 
+        % for stims = 1:size(rights,1)
+        %     plot(rights(stims,:), 'k')
+        % end
+        % avg = mean(rights, 1,"omitmissing");
+        % plot(avg, 'r', 'LineWidth',2)
+        % if this_rec == idxLearn
+        %     title(this_rec + "*")
+        % else
+        %     title(this_rec)
+        % end
+        % hold off
     end
 end
 
@@ -597,60 +610,6 @@ end
 
 
 
-
-
-[dayOriMeansQ, groupsQ] = ap.groupfun(@(x) mean(x,1,'omitnan'), psthData_allQui, [learnDayIdx_allQui orientationIdx_allQui]);
-[dayOriSemQ, ~] = ap.groupfun(@(x) nanstd(x, 0, 1) ./ sqrt(sum(~isnan(x),1)), psthData_allQui, [learnDayIdx_allQui orientationIdx_allQui]);
-
-% plotting %% THIS IS BROKEN (Good)
-relDays = unique(groupsQ(:,1));
-nRel = numel(relDays);
-areaWindow = 1:81;
-AUCs = [];
-
-figure;
-tiledlayout(1, 6, 'TileSpacing','compact','Padding','compact'); % arrange tiles
-% plot with baseline subtraction
-for di = 8:13%:nRel
-    rel = relDays(di);      
-    nexttile;
-    hold on;
-
-    % logical for this relative day across groups
-    dayMask = groupsQ(:,1) == rel;
-
-    % for each orientation 
-    colors = {'b','k','r'};
-    labels = {'left','center','right'};
-    plotted = false(3,1);
-
-    for ori = 1:3
-        mask = dayMask & (groupsQ(:,2) == ori);
-        if any(mask)
-            M = dayOriMeansQ(mask, :);  
-            baseline = M(21);
-            Mb = M - baseline;
-            SEM = dayOriSemQ(mask, :);
-            % plot filled SEM and mean
-            xl = [x, fliplr(x)];
-            yl = [Mb + SEM, fliplr(Mb - SEM)];
-            fill(xl, yl, colors{ori}, 'EdgeColor','none', 'FaceAlpha', 0.2);
-            plot(x, Mb, colors{ori}, 'LineWidth', 1.2);
-            plotted(ori) = true;
-            Mpeak = Mb(areaWindow);
-            AUCs(ori,di) = trapz(Mpeak);
-        end
-    end
-
-    xline(0,'--');
-    yline(0,'Color','k','Alpha',0.5);
-    xlabel('Frames (relative to stimulus)');
-    ylabel('Pupil diameter derivative (arb)');
-    %ylim([-0.05, 0.05]);
-    title(sprintf('Learn day = %d', rel));
-
-    hold off;
-end
 
 % %AUCs for the 0-35f window
 % figure; hold on;
