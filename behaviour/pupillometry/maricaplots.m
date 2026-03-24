@@ -46,6 +46,9 @@ end
 
 
 %deriv
+aucMeans = [];
+aucSems = [];
+peakwindow = 30:40;
 
 figure;
 tiledlayout(2,2,'TileSpacing','compact','Padding','compact')
@@ -56,11 +59,24 @@ for g = 1:numel(dayBins)
     for orientation = 1:3
         subset = psthData_allQui( ...
             orientationIdx_allQui == orientation & dayBins{g}.mask, :);
+        
+        mouseIdxSubset = mouseIdx_allQui( ...
+            orientationIdx_allQui == orientation & dayBins{g}.mask, :);
 
         % Drop sparse trials
         trialCoverage = mean(~isnan(subset), 2);
         subset = subset(trialCoverage >= 0, :);
-        
+
+        mouseIdxSubset = mouseIdxSubset(trialCoverage >= 0, :);
+        mouseSubset = unique(mouseIdxSubset);
+       
+        for auc = 1:numel(mouseSubset)
+            mouse = diff(subset(mouseIdxSubset == mouseSubset(auc),:), 1, 2);
+            aucs = trapz(mouse(:,peakwindow),2);
+            aucMeans(g,orientation) = mean(aucs,1,'omitnan');
+            aucSems(g, orientation) = std(aucs, 0, 1, 'omitnan') ./ sqrt(numel(aucs));
+        end
+
         % Derivative per trial
         subsetDeriv = diff(subset, 1, 2);
 
@@ -88,6 +104,12 @@ for g = 1:numel(dayBins)
     xline(20.5, 'k--')
     title(dayBins{g}.title)
     hold off
+end
+figure; tiledlayout
+for plt = 1:4
+    nexttile
+    bar(aucMeans(plt,:))
+    ylim([-0.15 0.15])
 end
 
 % 
