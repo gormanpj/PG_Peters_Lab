@@ -1,5 +1,5 @@
 %% Load behavior, add 'learned_days' and 'days_from_learning' fields
-data_path = fullfile(plab.locations.server_path,'Lab','Papers','Marica_2025','data');
+data_path = fullfile(plab.locations.server_path,'Lab','Papers','Marica_2026','data');
 % Set stat and p-value to define learning day
 use_stat = 'firstmove_mean';
 learn_stat_p = 0.05;
@@ -201,14 +201,19 @@ for m = 1:numel(mouseIDs)
     passiveM = plab.find_recordings(animalID, [], 'lcr_passive');
     
     %% limit to recording days, not habituation
+    if nFiles ~= size(passiveM, 2)
+        fprintf(animalID, ' mismatch between recording files and hdf5 files. Excluding habitation days may be broken')
+    end
+
     taskIdx = find(strcmp(animalID,bhv{:,"animal"}));
     taskDays = bhv{:,"rec_day"}(taskIdx);
     taskMask = ismember({passiveM.day}, {taskDays{:}});
     passiveM = passiveM(taskMask);
-
+    
+    diameterPx_all = diameterPx_all(taskMask);
+    diameterZ_all  = diameterZ_all(taskMask);
 
     [s,recs] = size(passiveM);
-    
     
     % Plotting code to look at fourier transforms and assess periodic
     % noise
@@ -328,12 +333,6 @@ for m = 1:numel(mouseIDs)
         frameStims(curr_rec,4) = {quiescent_trials'};
         % frameStims(curr_rec,5) = {screenOffMask};
     end 
-    
-    %%FIX ME
-    % hatchet trim to task recordings 
-    diameterPx_all = diameterPx_all(4:end);
-    diameterZ_all = diameterZ_all(4:end);
-    %%FIX ME end
 
     diameterPxAllFlip = cellfun(@transpose, diameterPx_all, 'UniformOutput', false);
     diameterZAllFlip = cellfun(@transpose, diameterZ_all, 'UniformOutput', false);
@@ -528,7 +527,6 @@ for m = 1:numel(mouseIDs)
         % hold off
     end
 end
-
 
 
 % new simpler plotting

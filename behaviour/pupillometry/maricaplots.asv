@@ -20,7 +20,7 @@ for g = 1:numel(dayBins)
 
         % Drop sparse trials
         trialCoverage = mean(~isnan(subset), 2);
-        subset = subset(trialCoverage >= 0, :);
+        subset = subset(trialCoverage >= 0.99, :);
 
         avg = mean(subset, 1, 'omitnan');
         nValid = sum(~isnan(subset), 1);
@@ -47,8 +47,6 @@ end
 
 %deriv
 
-peakwindow = 30:40;
-
 figure;
 tiledlayout(2,2,'TileSpacing','compact','Padding','compact')
 
@@ -59,19 +57,9 @@ for g = 1:numel(dayBins)
         subset = psthData_allQui( ...
             orientationIdx_allQui == orientation & dayBins{g}.mask, :);
         
-        mouseIdxSubset = mouseIdx_allQui( ...
-            orientationIdx_allQui == orientation & dayBins{g}.mask, :);
-
         % Drop sparse trials
         trialCoverage = mean(~isnan(subset), 2);
-        subset = subset(trialCoverage >= 0, :);
-        mouseIdxSubset = mouseIdxSubset(trialCoverage >= 0, :);
-        mouseSubset = unique(mouseIdxSubset);
-        
-        aucs = [];
-        for auc = 1:numel(mouseSubset)
-            mouse = subset(mouseIdxSubset == mouseSubset(auc),:);
-            aucs = trapz(peakwindow,)
+        subset = subset(trialCoverage >= 0.99, :);
 
         % Derivative per trial
         subsetDeriv = diff(subset, 1, 2);
@@ -86,8 +74,8 @@ for g = 1:numel(dayBins)
         avgsub = avg - bline;
 
         x = 1:numel(avgsub);
-        upper = avgsub + sem;
-        lower = avgsub - sem;
+        upper = avgsub + sem*1.96;
+        lower = avgsub - sem*1.96;
 
         c = col(orientation,:);
 
@@ -100,6 +88,36 @@ for g = 1:numel(dayBins)
     xline(20.5, 'k--')
     title(dayBins{g}.title)
     hold off
+end
+
+% auc line plot 
+
+aucMeans = [];
+aucSems = [];
+peakwindow = 30:40;
+figure;
+tiledlayout(2,2,'TileSpacing','compact','Padding','compact')
+
+
+        mouseIdxSubset = mouseIdx_allQui( ...
+            orientationIdx_allQui == orientation & dayBins{g}.mask, :);
+
+
+        mouseIdxSubset = mouseIdxSubset(trialCoverage >= 0, :);
+        mouseSubset = unique(mouseIdxSubset);
+        % 
+        % for auc = 1:numel(mouseSubset)
+        %     mouse = diff(subset(mouseIdxSubset == mouseSubset(auc),:), 1, 2);
+        %     aucs = trapz(mouse(:,peakwindow),2);
+        %     aucMeans(g,orientation) = mean(aucs,1,'omitnan');
+        %     aucSems(g, orientation) = std(aucs, 0, 1, 'omitnan') ./ sqrt(numel(aucs));
+        % end
+
+figure; tiledlayout
+for plt = 1:4
+    nexttile
+    bar(aucMeans(plt,:))
+    ylim([-0.15 0.15])
 end
 
 % 
