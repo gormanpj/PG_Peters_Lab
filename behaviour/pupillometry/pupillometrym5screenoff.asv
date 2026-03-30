@@ -58,7 +58,7 @@ learnDayIdx_allQui    = [];
 mouseIdx_allQui       = []; 
 
 % Loop across all mice
-for m = 1:numel(mouseIDs)
+for m = 12%:numel(mouseIDs)
     animalID = mouseIDs{m};
     fprintf(animalID); fprintf(' \n \n');
     dataDir = fullfile('C:\Users\pgorman\Documents\SLEAP\Outputs_Sorted\lcr_passive', animalID);  
@@ -204,16 +204,16 @@ for m = 1:numel(mouseIDs)
     if nFiles ~= size(passiveM, 2)
         fprintf(animalID, ' mismatch between recording files and hdf5 files. Excluding habitation days may be broken')
     end
+
     taskIdx = find(strcmp(animalID,bhv{:,"animal"}));
     taskDays = bhv{:,"rec_day"}(taskIdx);
     taskMask = ismember({passiveM.day}, {taskDays{:}});
     passiveM = passiveM(taskMask);
     
-    diameterPx_all{idx} = diameterPx;
-    diameterZ_all{idx}  = diameterZ;
+    diameterPx_all = diameterPx_all(taskMask);
+    diameterZ_all  = diameterZ_all(taskMask);
 
     [s,recs] = size(passiveM);
-    
     
     % Plotting code to look at fourier transforms and assess periodic
     % noise
@@ -222,7 +222,7 @@ for m = 1:numel(mouseIDs)
     % fq = 1/T;
 
     frameStims = cell(recs,5); 
-    for curr_rec = 1:recs 
+    for curr_rec = 10%1:recs 
         animal = passiveM(curr_rec).animal; 
         rec_day = passiveM(curr_rec).day; 
         rec_time = passiveM(curr_rec).recording{end}; 
@@ -333,12 +333,6 @@ for m = 1:numel(mouseIDs)
         frameStims(curr_rec,4) = {quiescent_trials'};
         % frameStims(curr_rec,5) = {screenOffMask};
     end 
-    
-    %%FIX ME
-    % hatchet trim to task recordings 
-    diameterPx_all = diameterPx_all(4:end);
-    diameterZ_all = diameterZ_all(4:end);
-    %%FIX ME end
 
     diameterPxAllFlip = cellfun(@transpose, diameterPx_all, 'UniformOutput', false);
     diameterZAllFlip = cellfun(@transpose, diameterZ_all, 'UniformOutput', false);
@@ -534,146 +528,145 @@ for m = 1:numel(mouseIDs)
     end
 end
 
-
-
-% new simpler plotting
-col = ['b', 'k', 'r'];
-figure; tiledlayout
-
-for day = -2:2 
-    nexttile; hold on 
-
-    for orientation = 1:3
-        subset = psthData_all(orientationIdx_all == orientation & learnDayIdx_all == day,:);
-        
-        % noise might just be caused by sparse trials - drop?
-        trialCoverage = mean(~isnan(subset), 2);
-        subset = subset(trialCoverage >= 0.99, :);  
-        avg = mean(subset, 1,'omitnan');
-        nValid = sum(~isnan(subset), 1);
-
-        sem = std(subset, 0, 1, 'omitnan') ./ sqrt(nValid);
-        bline = avg(21);
-        avgsub = avg-bline;
-        plot(avgsub, col(orientation), 'LineWidth',4)
-        x = 1:numel(avgsub);
-        upper = avgsub + sem;
-        lower = avgsub - sem;
-        fill([x fliplr(x)], [upper fliplr(lower)], col(orientation), ...
-            'FaceAlpha', 0.2, 'EdgeColor', 'none');
-    end
-    ylim([-0.3, 0.3]);
-    xline(21, 'k--')
-    title(day)
-    hold off
-end
-
-%deriv
-
-col = ['b', 'k', 'r'];
-figure; tiledlayout
-for day = -2:2
-    nexttile;hold on
-    
-    for orientation = 1:3
-        subset = psthData_all(orientationIdx_all == orientation & learnDayIdx_all == day, :);
-        
-        % Drop sparse trials
-        trialCoverage = mean(~isnan(subset), 2);
-        subset = subset(trialCoverage >= 0.99, :);
-        
-        % Derivative per trial
-        subsetDeriv = diff(subset, 1, 2);
-        
-        % Mean and SEM of derivative traces
-        avg = mean(subsetDeriv, 1, 'omitnan');
-        nValid = sum(~isnan(subsetDeriv), 1);
-        sem = std(subsetDeriv, 0, 1, 'omitnan') ./ sqrt(nValid);
-        
-        bline = avg(21);
-        avgsub = avg-bline;
-
-        x = 1:numel(avgsub);
-        
-        % Shaded SEM band
-        fill([x fliplr(x)], ...
-             [avgsub + sem, fliplr(avgsub - sem)], ...
-             col(orientation), ...
-             'FaceAlpha', 0.2, 'EdgeColor', 'none');
-        
-        % Mean derivative line
-        plot(x, avgsub, col(orientation), 'LineWidth', 4)
-    end
-    ylim([-0.03, 0.03]);
-
-    xline(20.5, 'k--')   % diff shifts by one sample
-    title(['Derivative, day ' num2str(day)])
-    hold off
-end
-
-
-
-
-
-
-
-
-
-% %AUCs for the 0-35f window
-% figure; hold on;
-% plot(AUCs(1,8:14), 'b');
-% plot(AUCs(2,8:14), 'k');
-% plot(AUCs(3,8:14), 'r');
-% xline(4, '--');
-% hold off
-
-%% Package into a beautiful table
-
-animalID = {};
-for i = 1:numel(mouseIdx_all)
-    animalID{i,1} = mouseIDs{mouseIdx_all(i)};
-end
-
-orientationDir = [];
-for y = 1:numel(orientationIdx_all)
-    if orientationIdx_all(y,1) == 1
-            orientationDir(y,1) = -90;    % left
-    elseif orientationIdx_all(y,1) == 2
-            orientationDir(y,1) = 0;    % center
-    elseif orientationIdx_all(y,1) == 3
-            orientationDir(y,1) = 90;     % right
-    end
-end
-
-pupilDiamByFrame = psthData_all;
-
-pupils = table(animalID, mouseIdx_all, learnDayIdx_all, orientationDir, pupilDiamByFrame);
 % 
+% % new simpler plotting
+% col = ['b', 'k', 'r'];
+% figure; tiledlayout
+% 
+% for day = -2:2 
+%     nexttile; hold on 
+% 
+%     for orientation = 1:3
+%         subset = psthData_all(orientationIdx_all == orientation & learnDayIdx_all == day,:);
+% 
+%         % noise might just be caused by sparse trials - drop?
+%         trialCoverage = mean(~isnan(subset), 2);
+%         subset = subset(trialCoverage >= 0.99, :);  
+%         avg = mean(subset, 1,'omitnan');
+%         nValid = sum(~isnan(subset), 1);
+% 
+%         sem = std(subset, 0, 1, 'omitnan') ./ sqrt(nValid);
+%         bline = avg(21);
+%         avgsub = avg-bline;
+%         plot(avgsub, col(orientation), 'LineWidth',4)
+%         x = 1:numel(avgsub);
+%         upper = avgsub + sem;
+%         lower = avgsub - sem;
+%         fill([x fliplr(x)], [upper fliplr(lower)], col(orientation), ...
+%             'FaceAlpha', 0.2, 'EdgeColor', 'none');
+%     end
+%     ylim([-0.3, 0.3]);
+%     xline(21, 'k--')
+%     title(day)
+%     hold off
+% end
+% 
+% %deriv
+% 
+% col = ['b', 'k', 'r'];
+% figure; tiledlayout
+% for day = -2:2
+%     nexttile;hold on
+% 
+%     for orientation = 1:3
+%         subset = psthData_all(orientationIdx_all == orientation & learnDayIdx_all == day, :);
+% 
+%         % Drop sparse trials
+%         trialCoverage = mean(~isnan(subset), 2);
+%         subset = subset(trialCoverage >= 0.99, :);
+% 
+%         % Derivative per trial
+%         subsetDeriv = diff(subset, 1, 2);
+% 
+%         % Mean and SEM of derivative traces
+%         avg = mean(subsetDeriv, 1, 'omitnan');
+%         nValid = sum(~isnan(subsetDeriv), 1);
+%         sem = std(subsetDeriv, 0, 1, 'omitnan') ./ sqrt(nValid);
+% 
+%         bline = avg(21);
+%         avgsub = avg-bline;
+% 
+%         x = 1:numel(avgsub);
+% 
+%         % Shaded SEM band
+%         fill([x fliplr(x)], ...
+%              [avgsub + sem, fliplr(avgsub - sem)], ...
+%              col(orientation), ...
+%              'FaceAlpha', 0.2, 'EdgeColor', 'none');
+% 
+%         % Mean derivative line
+%         plot(x, avgsub, col(orientation), 'LineWidth', 4)
+%     end
+%     ylim([-0.03, 0.03]);
+% 
+%     xline(20.5, 'k--')   % diff shifts by one sample
+%     title(['Derivative, day ' num2str(day)])
+%     hold off
+% end
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% 
+% % %AUCs for the 0-35f window
+% % figure; hold on;
+% % plot(AUCs(1,8:14), 'b');
+% % plot(AUCs(2,8:14), 'k');
+% % plot(AUCs(3,8:14), 'r');
+% % xline(4, '--');
+% % hold off
+% 
+% %% Package into a beautiful table
+% 
+% animalID = {};
+% for i = 1:numel(mouseIdx_all)
+%     animalID{i,1} = mouseIDs{mouseIdx_all(i)};
+% end
+% 
+% orientationDir = [];
+% for y = 1:numel(orientationIdx_all)
+%     if orientationIdx_all(y,1) == 1
+%             orientationDir(y,1) = -90;    % left
+%     elseif orientationIdx_all(y,1) == 2
+%             orientationDir(y,1) = 0;    % center
+%     elseif orientationIdx_all(y,1) == 3
+%             orientationDir(y,1) = 90;     % right
+%     end
+% end
+% 
+% pupilDiamByFrame = psthData_all;
+% 
+% pupils = table(animalID, mouseIdx_all, learnDayIdx_all, orientationDir, pupilDiamByFrame);
 % % 
-% animal = 'AM026'
-% rec_day =  '2024-07-23'
-% rec_time = '1206'
-% 
-% 
-% %%%%%% AP TEST
-% 
-% thresh = 0.2;
-% 
-% violet_on = timelite.timestamps(find(diff(timelite.data(:,8) > thresh) == 1)+1);
-% blue_on = timelite.timestamps(find(diff(timelite.data(:,9) > thresh) == 1)+1);
-% 
-% pupil_tl = interp1(mousecam_times,diameterPx_all{4},timelite.timestamps,'linear','extrap');
-% 
-% violet_regressor = histcounts(violet_on,[timelite.timestamps;Inf])';
-% blue_regressor = histcounts(blue_on,[timelite.timestamps;Inf])';
-% 
-% 
-% [k,predicted_signals] = ap.regresskernel([violet_regressor,blue_regressor]',pupil_tl',[-200:200],0,[false,false],1);
-% 
-% predicted_signals_mousecam = interp1(timelite.timestamps,predicted_signals,mousecam_times,'linear','extrap');
-% 
-% 
-% 
-% 
-% 
-% 
+% % % 
+% % animal = 'AM026'
+% % rec_day =  '2024-07-23'
+% % rec_time = '1206'
+% % 
+% % 
+% % %%%%%% AP TEST
+% % 
+% % thresh = 0.2;
+% % 
+% % violet_on = timelite.timestamps(find(diff(timelite.data(:,8) > thresh) == 1)+1);
+% % blue_on = timelite.timestamps(find(diff(timelite.data(:,9) > thresh) == 1)+1);
+% % 
+% % pupil_tl = interp1(mousecam_times,diameterPx_all{4},timelite.timestamps,'linear','extrap');
+% % 
+% % violet_regressor = histcounts(violet_on,[timelite.timestamps;Inf])';
+% % blue_regressor = histcounts(blue_on,[timelite.timestamps;Inf])';
+% % 
+% % 
+% % [k,predicted_signals] = ap.regresskernel([violet_regressor,blue_regressor]',pupil_tl',[-200:200],0,[false,false],1);
+% % 
+% % predicted_signals_mousecam = interp1(timelite.timestamps,predicted_signals,mousecam_times,'linear','extrap');
+% % 
+% % 
+% % 
+% % 
+% % 
+% % 

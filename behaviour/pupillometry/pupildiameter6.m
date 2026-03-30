@@ -1,3 +1,5 @@
+%% Code to get pupil diameter across trials from labelled SLEAP HDF5 files
+
 %% Load behavior, add 'learned_days' and 'days_from_learning' fields
 data_path = fullfile(plab.locations.server_path,'Lab','Papers','Marica_2026','data');
 % Set stat and p-value to define learning day
@@ -32,7 +34,7 @@ for curr_animal = 1:numel(aniUniq);
     end
 end
 
-%% Script to plot pupil responses to lcr_passive stimuli across days, for many mice
+%% Pupil responses to lcr_passive stimuli across days, for multiple mice
 
 mouseIDs = unique(bhv.animal); % grabbing mice in question from bhv table
 
@@ -58,7 +60,7 @@ learnDayIdx_allQui    = [];
 mouseIdx_allQui       = []; 
 
 % Loop across all mice
-for m = 12%:numel(mouseIDs)
+for m = 1:numel(mouseIDs)
     animalID = mouseIDs{m};
     fprintf(animalID); fprintf(' \n \n');
     dataDir = fullfile('C:\Users\pgorman\Documents\SLEAP\Outputs_Sorted\lcr_passive', animalID);  
@@ -137,7 +139,7 @@ for m = 12%:numel(mouseIDs)
             xg = xpts(valid);
             yg = ypts(valid);
             
-            % Replace here with median difference b/t opposed points 
+            % Could replace here with median difference b/t opposed points 
 
             % Algebraic least-squares fit:
             % Solve for a,b,c in x^2 + y^2 + a*x + b*y + c = 0
@@ -200,7 +202,7 @@ for m = 12%:numel(mouseIDs)
     
     passiveM = plab.find_recordings(animalID, [], 'lcr_passive');
     
-    %% limit to recording days, not habituation
+    % limit to recording days, not habituation
     if nFiles ~= size(passiveM, 2)
         fprintf(animalID, ' mismatch between recording files and hdf5 files. Excluding habitation days may be broken')
     end
@@ -215,12 +217,7 @@ for m = 12%:numel(mouseIDs)
 
     [s,recs] = size(passiveM);
     
-    % Plotting code to look at fourier transforms and assess periodic
-    % noise
-    % figure; tiledlayout("vertical")
-    % T = 1/30;
-    % fq = 1/T;
-
+    % loop to get relevant variables from each recording
     frameStims = cell(recs,5); 
     for curr_rec = 1:recs 
         animal = passiveM(curr_rec).animal; 
@@ -240,108 +237,16 @@ for m = 12%:numel(mouseIDs)
                     timelite.timestamps >= stimOn_times(x)+stim_window(1) & ...
                     timelite.timestamps <= stimOn_times(x)+stim_window(2))), ...
                     (1:length(stimOn_times))');
-        
-        % plot the fourier transform pre-masking
-        % ex = indigos%diameterPx_all{curr_rec,1};
-        % exfill = fillmissing(ex,'linear');
-        % fex = fft(exfill - mean(exfill)); % fast fourier transform
-        % fourex = (0:length(exfill)-1)*fq/length(exfill);
-        % 
-        % nexttile
-        % n = length(exfill);
-        % fshift = (-n/2:n/2-1)*(fq/n);
-        % fexshift = fftshift(fex);
-        % plot(fshift,abs(fexshift), 'b')
-        % xlim([0,20]);
-        % ylim([0,5000]);
-        % xlabel('Frequency (Hz)')
-        % ylabel('Magnitude')
-        % title("video "+curr_rec)
-
-        % Get mask for screen-off frames
-        % 
-        % mousecamOffTimelite = timelite.timestamps(find(diff([double(mousecam_thresh)]) == -1));
-        % mousecamOffTimes = interp1(mousecamOffTimelite, mousecamOffTimelite, mousecam_times, "next");
-        % % 
-        % violetOn = timelite.data(:,8) >= 0.05;
-        % blueOn = timelite.data(:,9) >= 0.05;
-        % % 
-        % % screenOnFrames = [];
-        % % screenOnFramesCt = [];
-        % % 
-        % % if all(screen_on(:))   
-        % %     screenOffMask = true(numel(diameterPx_all{curr_rec}),1);
-        % % else 
-        % %     for k = 1:numel(mousecam_times)
-        % %         exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
-        % %         screenOnFrames(k) = any(screen_on(exposeMask));
-        % %         screenOnFramesCt(k) = sum(screen_on(exposeMask));
-        % %     end
-        % %     % figure;histogram(screenOnFramesCt);
-        % %     screenOff = screenOnFrames == 0;
-        % %     screenOffMask = screenOff(1:numel(diameterPx_all{curr_rec}));
-        % % end
-        % % 
-        % for k = 1:numel(mousecam_times)
-        %         exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
-        %         blueOnFrames(k) = any(blueOn(exposeMask));
-        %         blueOnFramesCt(k) = sum(blueOn(exposeMask));
-        % end
-        % % figure;histogram(blueOnFramesCt);
-        % for k = 1:numel(mousecam_times)
-        %         exposeMask = isbetween(timelite.timestamps, mousecam_times(k), mousecamOffTimes(k));
-        %         violetOnFrames(k) = any(violetOn(exposeMask));
-        %         violetOnFramesCt(k) = sum(violetOn(exposeMask));
-        % end
-        % 
-        % violetOnMask = violetOnFramesCt >= 3;
-        % blueOnMask = blueOnFramesCt >= 3;
-        % 
-        % blues = diameterPx_all{4};
-        % violets = diameterPx_all{4};
-        % blues(~blueOnMask) = NaN;
-        % violets(~violetOnMask) = NaN;
-        % figure; hold on
-        % plot(diameterPx_all{4},'k')
-        % plot(blues,'b')
-        % plot(violets,'m')
-        % 
-        % bluesfilled = fillmissing(blues, "linear");
-        % violetsfilled = fillmissing(violets, "linear");
-        % plot(diameterPx_all{4},'k')
-        % plot(bluesfilled,'b')
-        % plot(violetsfilled,'m')
-        % 
-        % indigos = (bluesfilled+violetsfilled)/2;
-        % plot(indigos, 'c')
-        % 
-        % indigoLow = lowpass(indigos, 6, 30);
-        % plot(indigoLow, 'r');
-
-        % also: check fourier transform before and after screenoff filtering, and of
-        % the videos where screen is always on
-
-        % baseline correct by using a 50-100ms avg window instead of 0
-        % frame
-
-        % do movmean at end
 
         % Grab the frame times and put them in one cell 
         frameStims(curr_rec,1) = {mousecam_times}; 
         frameStims(curr_rec,2) = {stimOn_times'}; 
         frameStims(curr_rec,3) = {(vertcat(trial_events.values.TrialStimX))'}; 
         frameStims(curr_rec,4) = {quiescent_trials'};
-        % frameStims(curr_rec,5) = {screenOffMask};
     end 
 
     diameterPxAllFlip = cellfun(@transpose, diameterPx_all, 'UniformOutput', false);
     diameterZAllFlip = cellfun(@transpose, diameterZ_all, 'UniformOutput', false);
-    
-    % for i = 1:numel(diameterZAllFlip)
-    %     mask = frameStims{i,5}(:);
-    %     diameterZAllFlip{i}(~mask) = NaN;
-    %     diameterPxAllFlip{i}(~mask) = NaN;
-    % end
 
     %Lowpass filter to get rid of jitteriness
     diameterZAllFlipFilt = cellfun(@(x) lowpass(fillmissing(x, "linear"), 4, 30), diameterZAllFlip, 'UniformOutput', false);
@@ -355,8 +260,7 @@ for m = 12%:numel(mouseIDs)
     % diameterZAllFlipSav = cellfun(@(x) sgolayfilt(x, 3, 15), diameterZAllFlip, 'UniformOutput', false);
     % diameterPxAllFlipSav = cellfun(@(x) sgolayfilt(x, 3, 15), diameterPxAllFlip, 'UniformOutput', false);
 
-
-    % Output to use
+    %% Output to use
     pupilPerFile = diameterZAllFlipFiltSav;  
 
     % Mask fillmissing'ed values back out 
@@ -376,9 +280,7 @@ for m = 12%:numel(mouseIDs)
     nWindow = numel(-pre:post);
     nRecs = min(nFiles, size(frameStims,1)); 
 
-    %troubleshoot plots
-    % figure; t =  tiledlayout; title(t,mouseIDs{m})
-
+    % Getting peri-stimulus pupil diameter values
     for this_rec = 1:nRecs
         % grab stimulus/frame info for this recording 
         frameTimes = frameStims{this_rec,1};
@@ -489,7 +391,6 @@ for m = 12%:numel(mouseIDs)
        
 
         % append for for quiescent 
-        
         localMatQui    = localMat(quiescent_trials,:);
         localOrientQui = localOrient(quiescent_trials,:);
         localMouseQui  = localMouse(quiescent_trials,:);
@@ -505,168 +406,31 @@ for m = 12%:numel(mouseIDs)
             rel = NaN;            
         end
         localDay = repmat(rel, nTrialsLocal,1);
-        learnDayIdx_all = [learnDayIdx_all; localDay]; %#ok<AGROW>
+        learnDayIdx_all = [learnDayIdx_all; localDay];
 
         localDayQui = localDay(frameStims{this_rec,4}',:);
-        learnDayIdx_allQui = [learnDayIdx_allQui; localDayQui]; %#ok<AGROW>
-        
-        % troublseshoot plot code 
-        % rights = psthData(orientationIdx == 3 & dayIdx == this_rec,:);
-        % 
-        % nexttile; hold on 
-        % for stims = 1:size(rights,1)
-        %     plot(rights(stims,:), 'k')
-        % end
-        % avg = mean(rights, 1,"omitmissing");
-        % plot(avg, 'r', 'LineWidth',2)
-        % if this_rec == idxLearn
-        %     title(this_rec + "*")
-        % else
-        %     title(this_rec)
-        % end
-        % hold off
+        learnDayIdx_allQui = [learnDayIdx_allQui; localDayQui];
     end
 end
 
-% 
-% % new simpler plotting
-% col = ['b', 'k', 'r'];
-% figure; tiledlayout
-% 
-% for day = -2:2 
-%     nexttile; hold on 
-% 
-%     for orientation = 1:3
-%         subset = psthData_all(orientationIdx_all == orientation & learnDayIdx_all == day,:);
-% 
-%         % noise might just be caused by sparse trials - drop?
-%         trialCoverage = mean(~isnan(subset), 2);
-%         subset = subset(trialCoverage >= 0.99, :);  
-%         avg = mean(subset, 1,'omitnan');
-%         nValid = sum(~isnan(subset), 1);
-% 
-%         sem = std(subset, 0, 1, 'omitnan') ./ sqrt(nValid);
-%         bline = avg(21);
-%         avgsub = avg-bline;
-%         plot(avgsub, col(orientation), 'LineWidth',4)
-%         x = 1:numel(avgsub);
-%         upper = avgsub + sem;
-%         lower = avgsub - sem;
-%         fill([x fliplr(x)], [upper fliplr(lower)], col(orientation), ...
-%             'FaceAlpha', 0.2, 'EdgeColor', 'none');
-%     end
-%     ylim([-0.3, 0.3]);
-%     xline(21, 'k--')
-%     title(day)
-%     hold off
-% end
-% 
-% %deriv
-% 
-% col = ['b', 'k', 'r'];
-% figure; tiledlayout
-% for day = -2:2
-%     nexttile;hold on
-% 
-%     for orientation = 1:3
-%         subset = psthData_all(orientationIdx_all == orientation & learnDayIdx_all == day, :);
-% 
-%         % Drop sparse trials
-%         trialCoverage = mean(~isnan(subset), 2);
-%         subset = subset(trialCoverage >= 0.99, :);
-% 
-%         % Derivative per trial
-%         subsetDeriv = diff(subset, 1, 2);
-% 
-%         % Mean and SEM of derivative traces
-%         avg = mean(subsetDeriv, 1, 'omitnan');
-%         nValid = sum(~isnan(subsetDeriv), 1);
-%         sem = std(subsetDeriv, 0, 1, 'omitnan') ./ sqrt(nValid);
-% 
-%         bline = avg(21);
-%         avgsub = avg-bline;
-% 
-%         x = 1:numel(avgsub);
-% 
-%         % Shaded SEM band
-%         fill([x fliplr(x)], ...
-%              [avgsub + sem, fliplr(avgsub - sem)], ...
-%              col(orientation), ...
-%              'FaceAlpha', 0.2, 'EdgeColor', 'none');
-% 
-%         % Mean derivative line
-%         plot(x, avgsub, col(orientation), 'LineWidth', 4)
-%     end
-%     ylim([-0.03, 0.03]);
-% 
-%     xline(20.5, 'k--')   % diff shifts by one sample
-%     title(['Derivative, day ' num2str(day)])
-%     hold off
-% end
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% 
-% % %AUCs for the 0-35f window
-% % figure; hold on;
-% % plot(AUCs(1,8:14), 'b');
-% % plot(AUCs(2,8:14), 'k');
-% % plot(AUCs(3,8:14), 'r');
-% % xline(4, '--');
-% % hold off
-% 
-% %% Package into a beautiful table
-% 
-% animalID = {};
-% for i = 1:numel(mouseIdx_all)
-%     animalID{i,1} = mouseIDs{mouseIdx_all(i)};
-% end
-% 
-% orientationDir = [];
-% for y = 1:numel(orientationIdx_all)
-%     if orientationIdx_all(y,1) == 1
-%             orientationDir(y,1) = -90;    % left
-%     elseif orientationIdx_all(y,1) == 2
-%             orientationDir(y,1) = 0;    % center
-%     elseif orientationIdx_all(y,1) == 3
-%             orientationDir(y,1) = 90;     % right
-%     end
-% end
-% 
-% pupilDiamByFrame = psthData_all;
-% 
-% pupils = table(animalID, mouseIdx_all, learnDayIdx_all, orientationDir, pupilDiamByFrame);
-% % 
-% % % 
-% % animal = 'AM026'
-% % rec_day =  '2024-07-23'
-% % rec_time = '1206'
-% % 
-% % 
-% % %%%%%% AP TEST
-% % 
-% % thresh = 0.2;
-% % 
-% % violet_on = timelite.timestamps(find(diff(timelite.data(:,8) > thresh) == 1)+1);
-% % blue_on = timelite.timestamps(find(diff(timelite.data(:,9) > thresh) == 1)+1);
-% % 
-% % pupil_tl = interp1(mousecam_times,diameterPx_all{4},timelite.timestamps,'linear','extrap');
-% % 
-% % violet_regressor = histcounts(violet_on,[timelite.timestamps;Inf])';
-% % blue_regressor = histcounts(blue_on,[timelite.timestamps;Inf])';
-% % 
-% % 
-% % [k,predicted_signals] = ap.regresskernel([violet_regressor,blue_regressor]',pupil_tl',[-200:200],0,[false,false],1);
-% % 
-% % predicted_signals_mousecam = interp1(timelite.timestamps,predicted_signals,mousecam_times,'linear','extrap');
-% % 
-% % 
-% % 
-% % 
-% % 
-% % 
+%% Package into a beautiful table
+
+animalID = {};
+for i = 1:numel(mouseIdx_all)
+    animalID{i,1} = mouseIDs{mouseIdx_all(i)};
+end
+
+orientationDir = [];
+for y = 1:numel(orientationIdx_all)
+    if orientationIdx_all(y,1) == 1
+            orientationDir(y,1) = -90;    % left
+    elseif orientationIdx_all(y,1) == 2
+            orientationDir(y,1) = 0;    % center
+    elseif orientationIdx_all(y,1) == 3
+            orientationDir(y,1) = 90;     % right
+    end
+end
+
+pupilDiamByFrame = psthData_all;
+
+pupils = table(animalID, mouseIdx_all, learnDayIdx_all, orientationDir, pupilDiamByFrame);
