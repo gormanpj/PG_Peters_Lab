@@ -3,7 +3,7 @@
 %% Script to get pupil diameter across trials from labelled SLEAP HDF5 files
 
 % Directory for sorted SLEAP output HDF5 files
-sleapDir = 'Z:\Users\Peter_Gorman\Pupils_temporary\Outputs_Sorted\lcr_passive'
+sleapDir = 'C:\Users\pgorman\Documents\SLEAP\Outputs_Sorted\lcr_passive'
 
 % Confidence threshold for SLEAP point scores
 scoreThresh = 0.0;    
@@ -442,22 +442,27 @@ pupils = table(animalID, mouseIdx_all, learnDayIdx_all, orientationDir, pupilDia
 
 %% Package into a beautiful quiescent table 
 
+psthData_allQui       = [];
+orientationIdx_allQui = [];
+learnDayIdx_allQui    = [];
+mouseIdx_allQui       = []; 
+
 animalIDQui = {};
 for i = 1:numel(mouseIdx_allQui)
     animalIDQui{i,1} = mouseIDs{mouseIdx_allQui(i)};
 end
 
-orientationDirQui = [];
-for y = 1:numel(orientationIdx_allQui)
-    if orientationIdx_allQui(y,1) == 1
-            orientationDirQui(y,1) = -90;    % left
+orientationDir = [];
+for y = 1:numel(orientationIdx_all)
+    if orientationIdx_all(y,1) == 1
+            orientationDir(y,1) = -90;    % left
     elseif orientationIdx_all(y,1) == 2
-            orientationDirQui(y,1) = 0;    % center
+            orientationDir(y,1) = 0;    % center
     elseif orientationIdx_all(y,1) == 3
-            orientationDirQui(y,1) = 90;     % right
+            orientationDir(y,1) = 90;     % right
     end
 end
 
-pupilDiamByFrameQui = psthData_allQui;
+pupilDiamByFrame = psthData_all;
 
-pupilsQuiescent = table(animalIDQui, mouseIdx_allQui, learnDayIdx_allQui, orientationDirQui, pupilDiamByFrameQui);
+pupils = table(animalIDQui, mouseIdx_all, learnDayIdx_all, orientationDir, pupilDiamByFrame);
