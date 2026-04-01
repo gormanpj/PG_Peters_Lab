@@ -424,7 +424,7 @@ for g = 1:numel(dayBins)
             mouseTrace = mean(subset, 1, 'omitnan');
 
             % Baseline subtract this mouse trace
-            mouseTrace = mouseTrace - mouseTrace(21);
+            mouseTrace = mouseTrace - mouseTrace(16);
 
             mouseTraces = [mouseTraces; mouseTrace]; 
         end
@@ -452,8 +452,8 @@ for g = 1:numel(dayBins)
     end
 
     ylim([-0.3, 0.3]);
-    xlim([0, 81])
-    xline(21, 'k--')
+    xlim([0, 61])
+    xline(16, 'k--')
     title(dayBins{g}.title)
     hold off
 end
@@ -502,12 +502,12 @@ for g = 1:numel(dayBins)
         sem = std(mouseTraces, 0, 1, 'omitnan') ./ sqrt(nValid);
         
         c = col(orientation,:); 
-        % % plot individual traces
-        % for m = 1:size(mouseTraces,1)
-        %     plot(mouseTraces(m,:), ...
-        %         'Color', [c 0.4], ...   % transparency
-        %         'LineWidth', 1);
-        % end
+        % plot individual traces
+        for m = 1:size(mouseTraces,1)
+            plot(mouseTraces(m,:), ...
+                'Color', [c 0.4], ...   % transparency
+                'LineWidth', 1);
+        end
 
         x = 1:numel(avg);
         upper = avg + sem;
@@ -528,8 +528,8 @@ end
 %% AUC quantification from derivative traces, averaged across mice, no baseline subtraction
 
 
-basewindow = 20:21;   % pre-stimulus derivative bins
-peakwindow = 30:50;  % AUC window on derivative trace
+basewindow = 15:16;   % pre-stimulus derivative bins
+peakwindow = 25:45;  % AUC window on derivative trace
 
 mouseIDs = unique(mouseIdx_allQui);
 
@@ -579,14 +579,14 @@ for orientation = 1:3
     e = aucSems(:, orientation);
     c = col(orientation,:);
 
-    % % plot individual mice
-    % for g = 1:numel(dayBins)
-    %     vals = aucMouse(:, g, orientation);
-    %     xj = g + (rand(size(vals))-0.5)*0.15; % jitter
-    % 
-    %     scatter(xj, vals, 30, c, ...
-    %         'filled', 'MarkerFaceAlpha', 0.5);
-    % end
+    % plot individual mice
+    for g = 1:numel(dayBins)
+        vals = aucMouse(:, g, orientation);
+        xj = g + (rand(size(vals))-0.5)*0.15; % jitter
+
+        scatter(xj, vals, 30, c, ...
+            'filled', 'MarkerFaceAlpha', 0.5);
+    end
 
     errorbar(x, y, e, ...
         'Color', c, ...

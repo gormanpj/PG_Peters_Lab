@@ -38,11 +38,11 @@ end
 
 mouseIDs = unique(bhv.animal); % grabbing mice in question from bhv table
 
-scoreThresh = 0.6;    % confidence threshold for SLEAP point scores
+scoreThresh = 0.0;    % confidence threshold for SLEAP point scores
 
 % PSTH window
-pre = 20;
-post = 60;
+pre = 15;
+post = 45;
 x = -pre:post; 
 
 mouseLabels = mouseIDs;
