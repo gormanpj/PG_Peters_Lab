@@ -564,33 +564,8 @@ end
 
 disp(oriResults)
 
-%% permutation tests: consecutive day comparisons across all mice
-
-aucMouseDay = squeeze(mean(aucMouse, 3, 'omitnan'));   % [mouse x day]
-
-nPerm = 10000;
-
-dayConsecResults = table();
-
-for g = 1:numel(dayBins)-1
-    x = aucMouseDay(:, g);
-    y = aucMouseDay(:, g+1);
-
-    [pval, obsDiff, nPairs] = permtest_paired_signflip(x, y, nPerm);
-
-    newRow = table( ...
-        g, string(dayBins{g}.title), ...
-        g+1, string(dayBins{g+1}.title), ...
-        nPairs, obsDiff, pval, ...
-        'VariableNames', {'day1Idx','day1Label','day2Idx','day2Label','nPairs','obsDiff','pValue'} );
-
-    dayConsecResults = [dayConsecResults; newRow]; %#ok<AGROW>
-end
-
-disp(dayConsecResults)
-
 %% permutation tests: day comparisons within each orientation
-
+aucMouseDay = squeeze(mean(aucMouse, 3, 'omitnan'));   % [mouse x day]
 nPerm = 10000;
 
 dayResults = table();
@@ -616,9 +591,6 @@ for orientation = 1:3
 end
 
 disp(dayResults)
-
-oriResults.pBonf = min(oriResults.pValue * 3, 1);
-dayConsecResults.pBonf = min(dayConsecResults.pValue * (numel(dayBins)-1), 1);
 
 function [p, obsDiff, nPairs] = permtest_paired_signflip(x, y, nPerm)
 %PERMTEST_PAIRED_SIGNFLIP Paired permutation test using sign flips.
